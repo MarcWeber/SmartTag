@@ -1,0 +1,148 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+ClassA	TestTags.cpp	/^ClassA::ClassA(int blah \/* = -1 *\/)$/;"	f	class:ClassA	signature:(int blah )
+ClassA	TestTags.h	/^ class ClassA	\/\/ Still finds it with whitespace at the start$/;"	c
+ClassAA	TestTags.cpp	/^ClassAA::ClassAA()$/;"	f	class:ClassAA	signature:()
+ClassAA	TestTags.h	/^class ClassAA : public TypeDefC, public TypeDefA$/;"	c	inherits:TypeDefC,TypeDefA
+ClassB	TestTags.cpp	/^ClassB::ClassB()$/;"	f	class:ClassB	signature:()
+ClassB	TestTags.h	/^class ClassB$/;"	c
+ClassC	TestTags.h	/^class ClassC$/;"	c
+DefA	TestTags.h	/^#define DefA /;"	d
+DefB	TestTags.h	/^#define DefB /;"	d
+GlobalFunc	TestTags.h	/^GlobalFunc(ClassA *a)$/;"	f	signature:(ClassA *a)
+Nested	TestTags.h	/^	struct Nested$/;"	s	class:ClassA	access:public
+Nested	TestTags.h	/^	struct Nested$/;"	s	class:ClassB	access:public
+Nested2	TestTags.h	/^		struct Nested2$/;"	s	struct:ClassA::Nested	access:public
+Nested2	TestTags.h	/^		struct Nested2$/;"	s	struct:ClassB::Nested	access:public
+Nested2	TestTags.h	/^	struct Nested2$/;"	s	class:ClassA	access:public
+Nested2	TestTags.h	/^	struct Nested2$/;"	s	class:ClassB	access:public
+Nested3	TestTags.h	/^	struct Nested3$/;"	s	class:ClassA	access:public
+Nested3	TestTags.h	/^	struct Nested3$/;"	s	class:ClassB	access:public
+TagFuncBug	Bug.vim	/^function! TagFuncBug(pattern, flags)$/;"	f
+TypeDefA	TestTags.h	/^typedef DefA TypeDefA;$/;"	t
+TypeDefB	TestTags.h	/^typedef ClassB TypeDefB;$/;"	t
+TypeDefC	TestTags.h	/^typedef ClassC<float> TypeDefC;$/;"	t
+UnionA	TestTags.h	/^union UnionA$/;"	u
+__TEST_TAGS_H__	TestTags.h	/^#define __TEST_TAGS_H__$/;"	d
+col	SmartTagTest.vim	/^    let col = col(".")$/;"	v
+dontThinkClassBStartsHere	TestTags.h	/^	class ClassB *dontThinkClassBStartsHere()$/;"	f	class:ClassA	access:public	signature:()
+endPos	SmartTagTest.vim	/^	    let endPos = pos$/;"	v
+endPos	SmartTagTest.vim	/^let endPos = getpos(".")$/;"	v
+func	TestTags.cpp	/^void ClassB::Nested::func(ClassA *a,$/;"	f	class:ClassB::Nested	signature:(ClassA *a, ClassC *c, ClassAA *aa)
+func	TestTags.h	/^		void func()$/;"	f	struct:ClassA::Nested	access:public	signature:()
+gNamelessStruct	TestTags.h	/^} gNamelessStruct;$/;"	v	typeref:struct:__anon13
+glob	TestTags.cpp	/^static int glob = 0;$/;"	v	file:
+glob	TestTags.h	/^	float	glob;$/;"	m	class:ClassAA	access:public
+glob2	TestTags.cpp	/^static int glob2 = 0;$/;"	v	file:
+hj	SmartTagTest.vim	/^    normal hj$/;"	m
+id	SmartTagTest.vim	/^    let id = substitute(expand("<cWORD>"), '^.*#', '', '')$/;"	v
+inlineFunc	TestTags.h	/^	inline bool inlineFunc()$/;"	f	class:ClassA	access:public	signature:()
+inlineFunc	TestTags.h	/^	inline bool inlineFunc()$/;"	f	class:ClassB	access:public	signature:()
+k	SmartTagTest.vim	/^    normal k$/;"	m
+line	SmartTagTest.vim	/^    let line = getline(".")$/;"	v
+lineNum	SmartTagTest.vim	/^    let lineNum = line(".")$/;"	v
+localFunc	TestTags.h	/^		void localFunc()$/;"	f	struct:ClassB::Nested	access:public	signature:()
+mA	TestTags.h	/^	ClassA *mA;$/;"	m	class:ClassA	access:public
+mA	TestTags.h	/^	ClassA *mA;$/;"	m	class:ClassB	access:public
+mA	TestTags.h	/^	ClassA *mA;$/;"	m	struct:__anon13	access:public
+mA	TestTags.h	/^	ClassA *mA;$/;"	m	union:UnionA	access:public
+mAnon	TestTags.h	/^				ClassA *mAnon;$/;"	m	struct:ClassA::__anon1::__anon2::__anon3	access:public
+mAnon	TestTags.h	/^				ClassA *mAnon;$/;"	m	struct:ClassB::__anon7::__anon8::__anon9	access:public
+mB	TestTags.h	/^	ClassB *mB;		\/\/ This comment makes the search different, so it works.$/;"	m	struct:__anon13	access:public
+mB	TestTags.h	/^	ClassB *mB;$/;"	m	class:ClassA	access:public
+mB	TestTags.h	/^	ClassB *mB;$/;"	m	class:ClassB	access:public
+mB	TestTags.h	/^	ClassB *mB;$/;"	m	union:UnionA	access:public
+mBandC	TestTags.h	/^	int mBandC;$/;"	m	class:ClassB	access:public
+mBandC	TestTags.h	/^	int mBandC;$/;"	m	class:ClassC	access:public
+mHard12	TestTags.h	/^			mHard12;	\/\/ Hard to find type, not found in tags command.$/;"	m	class:ClassB	access:public
+mHard2	TestTags.h	/^			mRedHerring6, mHard2, mRedHerring7;$/;"	m	class:ClassB	access:public
+mLeft	TestTags.h	/^	ClassA *mLeft;$/;"	m	class:ClassA	access:public
+mLeft	TestTags.h	/^	ClassAA *mLeft;$/;"	m	class:ClassAA	access:public
+mLeft	TestTags.h	/^	ClassB *mLeft;$/;"	m	class:ClassB	access:public
+mNA	TestTags.h	/^			ClassA *mNA;$/;"	m	struct:ClassA::Nested::Nested2	access:public
+mNA	TestTags.h	/^			ClassA *mNA;$/;"	m	struct:ClassB::Nested::Nested2	access:public
+mNA	TestTags.h	/^		ClassA *mNA;$/;"	m	struct:ClassA::Nested	access:public
+mNA	TestTags.h	/^		ClassA *mNA;$/;"	m	struct:ClassA::Nested2	access:public
+mNA	TestTags.h	/^		ClassA *mNA;$/;"	m	struct:ClassA::Nested3	access:public
+mNA	TestTags.h	/^		ClassA *mNA;$/;"	m	struct:ClassB::Nested	access:public
+mNA	TestTags.h	/^		ClassA *mNA;$/;"	m	struct:ClassB::Nested2	access:public
+mNA	TestTags.h	/^		ClassA *mNA;$/;"	m	struct:ClassB::Nested3	access:public
+mNested	TestTags.h	/^		Nested2 mNested;$/;"	m	struct:ClassA::Nested	access:public
+mNested	TestTags.h	/^		Nested2 mNested;$/;"	m	struct:ClassB::Nested	access:public
+mNested	TestTags.h	/^	Nested mNested;$/;"	m	class:ClassA	access:public
+mNested	TestTags.h	/^	Nested mNested;$/;"	m	class:ClassB	access:public
+mNested12	TestTags.h	/^	Nested::Nested2 mNested12;$/;"	m	class:ClassA	access:public
+mNested12	TestTags.h	/^	Nested::Nested2 mRedHerring8, mNested12, mRedHerring9;$/;"	m	class:ClassB	access:public
+mNested2	TestTags.h	/^	Nested2 mNested2;$/;"	m	class:ClassA	access:public
+mNested2	TestTags.h	/^	Nested2 mRedHerring1, mRedHerring2, mNested2, mRedHerring3;$/;"	m	class:ClassB	access:public
+mNested3	TestTags.h	/^		Nested3 mNested3;$/;"	m	struct:ClassA::Nested	access:public
+mNested3	TestTags.h	/^		Nested3 mNested3;$/;"	m	struct:ClassB::Nested	access:public
+mNestedP	TestTags.h	/^	Nested *mNestedP;$/;"	m	class:ClassA	access:public
+mNestedP	TestTags.h	/^	Nested *mNestedP;$/;"	m	class:ClassB	access:public
+mNext	TestTags.h	/^	ClassA *mNext;$/;"	m	class:ClassA	access:public
+mNext	TestTags.h	/^	ClassB *mNext;$/;"	m	class:ClassB	access:public
+mNext	TestTags.h	/^	ClassC *mNext;$/;"	m	class:ClassC	access:public
+mPrev	TestTags.h	/^	ClassA *mPrev;$/;"	m	class:ClassA	access:public
+mPrev	TestTags.h	/^	ClassB *mPrev;$/;"	m	class:ClassB	access:public
+mPrev	TestTags.h	/^	ClassC *mPrev;$/;"	m	class:ClassC	access:public
+mRedHerring1	TestTags.h	/^	Nested2 mRedHerring1, mRedHerring2, mNested2, mRedHerring3;$/;"	m	class:ClassB	access:public
+mRedHerring2	TestTags.h	/^	Nested2 mRedHerring1, mRedHerring2, mNested2, mRedHerring3;$/;"	m	class:ClassB	access:public
+mRedHerring3	TestTags.h	/^	Nested2 mRedHerring1, mRedHerring2, mNested2, mRedHerring3;$/;"	m	class:ClassB	access:public
+mRedHerring4	TestTags.h	/^	Nested2	mRedHerring4, mRedHerring5,		\/\/ Keep a line-break here$/;"	m	class:ClassB	access:public
+mRedHerring5	TestTags.h	/^	Nested2	mRedHerring4, mRedHerring5,		\/\/ Keep a line-break here$/;"	m	class:ClassB	access:public
+mRedHerring6	TestTags.h	/^			mRedHerring6, mHard2, mRedHerring7;$/;"	m	class:ClassB	access:public
+mRedHerring7	TestTags.h	/^			mRedHerring6, mHard2, mRedHerring7;$/;"	m	class:ClassB	access:public
+mRedHerring8	TestTags.h	/^	Nested::Nested2 mRedHerring8, mNested12, mRedHerring9;$/;"	m	class:ClassB	access:public
+mRedHerring9	TestTags.h	/^	Nested::Nested2 mRedHerring8, mNested12, mRedHerring9;$/;"	m	class:ClassB	access:public
+mRight	TestTags.h	/^	ClassA *mRight;$/;"	m	class:ClassA	access:public
+mRight	TestTags.h	/^	ClassAA *mRight;$/;"	m	class:ClassAA	access:public
+mRight	TestTags.h	/^	ClassB *mRight;$/;"	m	class:ClassB	access:public
+mS	TestTags.h	/^	} mS;$/;"	m	class:ClassA	typeref:struct:ClassA::__anon4	access:public
+mS	TestTags.h	/^	} mS;$/;"	m	class:ClassB	typeref:struct:ClassB::__anon10	access:public
+mSA	TestTags.h	/^		ClassA *mSA;$/;"	m	struct:ClassA::__anon1	access:public
+mSA	TestTags.h	/^		ClassA *mSA;$/;"	m	struct:ClassB::__anon7	access:public
+mSA2	TestTags.h	/^		ClassA *mSA2;$/;"	m	struct:ClassA::__anon4	access:public
+mSA2	TestTags.h	/^		ClassA *mSA2;$/;"	m	struct:ClassB::__anon10	access:public
+mU	TestTags.h	/^	} mU;$/;"	m	class:ClassA	typeref:union:ClassA::__anon6	access:public
+mU	TestTags.h	/^	} mU;$/;"	m	class:ClassB	typeref:union:ClassB::__anon12	access:public
+mUA	TestTags.h	/^		ClassA *mUA;$/;"	m	union:ClassA::__anon5	access:public
+mUA	TestTags.h	/^		ClassA *mUA;$/;"	m	union:ClassB::__anon11	access:public
+mUA2	TestTags.h	/^		ClassA *mUA2;$/;"	m	union:ClassA::__anon6	access:public
+mUA2	TestTags.h	/^		ClassA *mUA2;$/;"	m	union:ClassB::__anon12	access:public
+mUB	TestTags.h	/^		ClassB *mUB;$/;"	m	union:ClassA::__anon5	access:public
+mUB	TestTags.h	/^		ClassB *mUB;$/;"	m	union:ClassB::__anon11	access:public
+mUB2	TestTags.h	/^		ClassB *mUB2;$/;"	m	union:ClassA::__anon6	access:public
+mUB2	TestTags.h	/^		ClassB *mUB2;$/;"	m	union:ClassB::__anon12	access:public
+main	TestTags.cpp	/^main()$/;"	f	signature:()
+numErrors	SmartTagTest.vim	/^	let numErrors += 1$/;"	v
+numErrors	SmartTagTest.vim	/^let numErrors = 0$/;"	v
+oldPos	SmartTagTest.vim	/^    let oldPos = getpos(".")$/;"	v
+operator ++	TestTags.cpp	/^ClassA::operator++()		\/\/ Pre-increment$/;"	f	class:ClassA	signature:()
+operator ++	TestTags.cpp	/^ClassA::operator++(int)		\/\/ Post-increment$/;"	f	class:ClassA	signature:(int)
+operator ++	TestTags.cpp	/^ClassB::operator++()		\/\/ Pre-increment$/;"	f	class:ClassB	signature:()
+operator ++	TestTags.cpp	/^ClassB::operator++(int)		\/\/ Post-increment$/;"	f	class:ClassB	signature:(int)
+operator -	TestTags.cpp	/^ClassA::operator-()			\/\/ Unary operator$/;"	f	class:ClassA	signature:()
+operator -	TestTags.cpp	/^ClassA::operator-(const ClassA &c)	\/\/ Binary operator$/;"	f	class:ClassA	signature:(const ClassA &c)
+operator -	TestTags.cpp	/^ClassB::operator-()			\/\/ Unary operator$/;"	f	class:ClassB	signature:()
+operator -	TestTags.cpp	/^ClassB::operator-(const ClassB &c)	\/\/ Binary operator$/;"	f	class:ClassB	signature:(const ClassB &c)
+operator delete	TestTags.cpp	/^ClassC<Type>::operator delete(void *p, size_t size)$/;"	f	class:ClassC	signature:(void *p, size_t size)
+override	TestTags.cpp	/^ClassA::override()$/;"	f	class:ClassA	signature:()
+override	TestTags.cpp	/^ClassAA::override()$/;"	f	class:ClassAA	signature:()
+override	TestTags.cpp	/^ClassB *ClassA::override(int blah, int blab)$/;"	f	class:ClassA	signature:(int blah, int blab)
+override	TestTags.cpp	/^ClassB *ClassAA::override(int blah, int blab)$/;"	f	class:ClassAA	signature:(int blah, int blab)
+override	TestTags.cpp	/^ClassB *ClassB::override(int blah, int blab)$/;"	f	class:ClassB	signature:(int blah, int blab)
+override	TestTags.cpp	/^ClassB::override()$/;"	f	class:ClassB	signature:()
+override	TestTags.cpp	/^int ClassA::override(int blah)$/;"	f	class:ClassA	signature:(int blah)
+override	TestTags.cpp	/^int ClassAA::override(int blah)$/;"	f	class:ClassAA	signature:(int blah)
+override	TestTags.cpp	/^int ClassB::override(int blah)$/;"	f	class:ClassB	signature:(int blah)
+overrideBandC	TestTags.cpp	/^void ClassB::overrideBandC(int blah)$/;"	f	class:ClassB	signature:(int blah)
+overrideBandC	TestTags.cpp	/^void ClassC<Type>::overrideBandC(int blah)$/;"	f	class:ClassC	signature:(int blah)
+pos	SmartTagTest.vim	/^    let pos = getpos(".")$/;"	v
+stopOnFirstError	SmartTagTest.vim	/^let stopOnFirstError = 0$/;"	v
+zz	SmartTagTest.vim	/^normal zz$/;"	m
+~ClassA	TestTags.cpp	/^ClassA::~ClassA()$/;"	f	class:ClassA	signature:()
+~ClassB	TestTags.cpp	/^ClassB::~ClassB()$/;"	f	class:ClassB	signature:()
