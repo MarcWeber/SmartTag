@@ -1,247 +1,22 @@
-"==============================
-"========== SmartTag ==========
-"======= by Robert Webb =======
-"== http://www.software3d.com =
-"== Stella4D AT gmail DOT com =
-"==============================
-"
-" License: This file is placed in the public domain.
-" But please let me know if you modify it, and please keep the reference above
-" to me as the author if redistributing.
-"
-" Use context to tag more sensibly:
-" - Try to resolve ambiguous tags
-" - Tag to overloaded operators
-" - Tag with cursor on "delete" to jump to destructor
-" - Tag to local variables (not defined in tags file)
-"
-"==================
-"=== How to use ===
-"==================
-"
-" Put this file in $VIMRUNTIME/plugin
-"
-" To use SmartTag all the time, in place of vim's own tag mechanism, you'll
-" need a version of vim with Lech Lorens's 'tagfunc' patch.  You can get it
-" here:
-" http://repo.or.cz/w/vim_extended.git/shortlog/refs/heads/feat/tagfunc
-"
-" Then put this in your .vimrc or _vimrc file:
-"	set tagfunc=SmartTagFunc
-"
-" You may now also do the following to specify the class for a tag:
-"	:tag ClassB::mNext
-" 
-" Otherwise, if you just want to use SmartTag via mappings, separate from vim's
-" normal tagging, set up some mappings in your .vimrc or _vimrc file, eg:
-"	nmap <C-_><C-_>   :call SmartTag("goto")<CR>
-"	nmap <C-_><C-W>   :call SmartTag("split")<CR>
-"	nmap <C-_><C-T>   :call SmartTag("tab")<CR>
-"	nmap <C-_><C-D>   :call SmartTag("debug")<CR>
-" That last one is only needed for debugging this script.
-"
-" The above mappings explained:
-"	Ctrl-_ Ctrl-_   -   Jump to tag under cursor
-"	Ctrl-_ Ctrl-W   -   Split to tag under cursor
-"	Ctrl-_ Ctrl-T   -   Create new tab for tag under cursor
-"	Ctrl-_ Ctrl-D   -   Show debug info about finding tag under cursor
-"
-" There's also a function that attempts to determine the type of whatever's
-" under the cursor, but it doesn't always work very well, and will mostly only
-" find the basic type, not whether it's a pointer to that type or an array etc.
-" If you want to try it, use a mapping like this:
-"	map _t	:call ShowType()<CR>
-"
-" Note: unless you use 'tagfunc', you can't use Ctrl-T to jump back to where
-" you tagged from.  Nor can you use :tn etc to try the next tag if it guesses
-" wrong.
-"
-" === Requirements ===
-"
-" Use the "--fields=+iS" flags with ctags when generating your tags.
-" See Exuberant Ctags (other ctags may not have those options).
-"
-" Without the "+i" field, SmartTag will not know which classes inherit from
-" other classes.
-"
-" Without the "+S" field, SmartTag will mostly work fine, but there may be
-" more cases where it can't tell which overloaded function to use within a
-" class.  It can't count the number of args to a function as easily, but it
-" does still try, so most of the time it may not make a difference.  Using "+S"
-" does increase the size of your tags file too, so you may leave this flag out
-" if you wish.
-"
-"================
-"=== Examples ===
-"================
-"
-" Examples (with cursor on "bar"):
-"   ~bar	Tag to destructor
-"   foo::bar	Tag to bar as defined in class foo only
-"   ::bar	Tag to bar in global namespace only
-"
-"   Type foo
-"   ...
-"   foo.bar	Tag to bar as defined in class Type
-"
-"   Type *foo
-"   ...
-"   foo->bar	Tag to bar as defined in class Type
-"
-"   class Type : public Base
-"   ...
-"   Type *foo
-"   ...
-"   foo->bar	Tag to bar as defined in class Type, or failing that, in Base
-"
-"   Type::foo()
-"   {...
-"   bar		Tag to bar as defined in class Type, and failing that try bar
-"		in the global namespace
-"
-"   bar(1)	Tag to function bar() which takes a single argument
-"   bar(1, 2)	Tag to function bar() which takes two arguments
-"
-" If you put the cursor on an operator (eg +, ++, -> etc), it will first check
-" to see if there's a function overriding the operator.  It distinguishes
-" between unary and binary operators, and between pre and post increment.
-" If no tag is found for the operator, it looks at the identifier after the
-" operator as usual.
-"
-" It will also take you to definitions of local variables which have no tag,
-" and take you from goto statements to their matching labels.
-"
-"====================
-"=== Known issues ===
-"====================
-"
-" Some cases are not recognised:
-"
-" - See TODO in the test files for some examples.
-"
-" - Multiple functions with the same name within a single class are
-"   distinguished only by the number of arguments they take, not by the type of
-"   those args.
-"
-" - We have no way of handling virtual functions, ie of jumping to the
-"   appropriate version in a derived class.  This is decided at runtime and the
-"   same line of code may jump to different virtual functions at different
-"   times.  It would be nice at least to know which tags are plausible however.
-"
-" Changes required to vim to fix some problems:
-"	See my posts for unresolved issues:
-"	http://tech.groups.yahoo.com/group/vimdev/message/51652 (script begins)
-"	http://tech.groups.yahoo.com/group/vimdev/message/51680	('tagfunc')
-"	http://tech.groups.yahoo.com/group/vimdev/message/51805 (split bug)
-"	http://tech.groups.yahoo.com/group/vimdev/message/51889 (repeated tags)
-"
-" - Ability to perform two searches one after the other in a tag command.
-"   Eg "/class Blah//int var" would find Blah::var but not other occurrences of
-"   "int var" defined earlier in the file.  My script currently does the
-"   searching itself, so this isn't a problem, but it will be if 'tagfunc' is
-"   made available in the future.  Then my script would just return the tag
-"   matches whose search commands must be self-contained, ready for vim to
-"   execute.
-"
-" - taglist() should escape characters as necessary in the ex commands, so that
-"   they may be executed without further massaging (obviously this already
-"   happens internally somewhere).  Can use "escape(tagCmd, '*[]~')".  Any
-"   other characters?  Note: ctags already escapes / and \
-"
-" - taglist() returns all tags found in all tag files, whereas jumping to a tag
-"   doesn't generally require looking at all tag files if a match is found in
-"   the first one.  Maybe taglist() could take an optional argument with the
-"   index of the tag file to use.  This might be handy in conjunction with
-"   'tagfunc'.  The user's tag function would then probably also need the extra
-"   arg so it knows to restrict its search.
-"
-" - Fix the bug detailed here:
-"   http://tech.groups.yahoo.com/group/vimdev/message/51805
-"
-"====================
-"=== How it works ===
-"====================
-"
-" If the tag under the cursor is ambiguous, look back before identifier for
-" ., -> or ::.  If found, try to establish the type of the preceding
-" identifier.  This narrows the possible tags for our original identifier.
-" It we still have more than one possibility, then search back further.
-"
-" If ::, preceding identifier gives us the class.
-" If . or ->, may need to recursively go back past successive . or ->
-" If none of the above found, it may be a member of the class of the current
-" function.  Failing that, look for a local or global var, or tag normally.
-"
-" -------------------
-" --- More detail ---
-" -------------------
-"
-" Example: Cursor on "a" below.
-"   C++ code:	d ->		preId ->	id ->		a
-"   level:	3		2		1		0
-"   Types:	Cd1::Td1	Cc1::Tc1	Cb1::Ca1	Ca1::Ta1
-"   Types:	Cd2::Cc3	Cc2::Cb1	Cb1::Ca2	Ca2::Ta2
-"   Types:	Cd3::Cc4	Cc3::Tc2	Cb2::Tb1	Ca3::Ta3
-"   Types:	Cd4::Td2	Cc4::Cb3	Cb3::Ca5	Ca4::Ta4
-"   Types:					Cb4::Ca6	Ca5::Ta5
-"   Types:							Ca6::Ta6
-"   Types:							Ca7::Ta7
-"
-" We build up a list of possible types for "a".  If there's more than one, then
-" we look back past the "->" to "id" and find its possible types.  This may
-" eliminate some of the possible types for "a".  If we still have more than one
-" possible type, then we continue looking back.
-"
-" At level 0:
-" [0] Ca1::Ta1 Ca2::Ta2 Ca3::Ta3 Ca4::Ta4 Ca5::Ta5 Ca6::Ta6 Ca7::Ta7
-"
-" At level 1:
-" Remove [1] Tb1 which doesn't appear in [0]
-" Remove [0] Ca3,Ca4,Ca7 which don't appear in [1]
-" [0] Ca1::Ta1 Ca2::Ta2 Ca5::Ta5 Ca6::Ta6
-" [1] Cb1::Ca1 Cb1::Ca2 Cb3::Ca5 Cb4::Ca6
-"
-" At level 2:
-" Remove [2] Tc1,Tc2 which don't appear in [1]
-" Remove [1] Cb4 which doesn't appear in [2]
-" Remove [0] Ca6 which doesn't appear in [1]
-" [0] Ca1::Ta1 Ca1::Ta2 Ca2::Ta5
-" [1] Cb1::Ca1 Cb1::Ca2 Cb3::Ca1
-" [2] Cc1::Cb1 Cc4::Cb3
-"
-" At level 3:
-" Remove [3] Td1,Td2,Cc3 which don't appear in [2]
-" Remove [2] Cc1 which doesn't appear in [3]
-" Remove [1] Cb1 which doesn't appear in [2]
-" Remove [0] Ca2 which doesn't appear in [1]
-" [0] Ca1::Ta1 Ca1::Ta2
-" [1] Cb3::Ca1
-" [2] Cc4::Cb3
-" [3] Cd3::Cc4
-"
-" If any level has only one possible type then we can stop looking, even if
-" level 0 still has more than one (further looking won't be able to resolve
-" it).
-"
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" usage and license see doc/SmartTag.txt
 
 let s:oldCpo = &cpo
 set cpo&vim
 
 "================ GENERAL UTILS ===================
 
-func! Error(message)
+fun! SmartTag#Error(message)
     echohl ErrorMsg
     echo a:message
     echohl None
 endfunc
 
-func! CursorChar()
+fun! SmartTag#CursorChar()
     return getline(".")[col(".") - 1]
 endfunc
 
 " Compare cursor positions obtained using getpos(".")
-func! CursorCmp(pos1, pos2)
+fun! SmartTag#CursorCmp(pos1, pos2)
     if (a:pos1[1] > a:pos2[1])
 	return 1
     elseif (a:pos1[1] < a:pos2[1])
@@ -254,7 +29,7 @@ func! CursorCmp(pos1, pos2)
     return 0
 endfunc
 
-func! StartOfWord()
+fun! SmartTag#StartOfWord()
     call search('.\>', 'cWs')
     call search('\<', 'cWb')
 endfunc
@@ -265,7 +40,7 @@ endfunc
 "   'c': search includes the cursor.
 "   '#': skip lines starting with #.
 " Return the line number containing the match, or 0 upon failure.
-func! StepForwardNonComment(...)
+fun! SmartTag#StepForwardNonComment(...)
     let pattern = '^\S'
     let flags = 'W'
     let skipHash = 0
@@ -308,7 +83,7 @@ func! StepForwardNonComment(...)
 		    return 0	" "/*" has no matching "*/"
 		endif
 		" matchit script leaves cursor on "*" rather than "/"
-		if (CursorChar() == '*')
+		if (SmartTag#CursorChar() == '*')
 		    normal l
 		endif
 		continue
@@ -327,7 +102,7 @@ endfunc
 "   'c': search includes the cursor.
 "   '#': skip lines starting with #.
 " Return the line number containing the match, or 0 upon failure.
-func! StepBackNonComment(...)
+fun! SmartTag#StepBackNonComment(...)
     let pattern = '^\S'
     let flags = 'bW'
     let skipHash = 0
@@ -394,26 +169,26 @@ endfunc
 " If ">" is not under cursor, cursor will not move.
 " This function presumes "<:>" is present in &matchpairs.  Caller should first
 " use :set matchpairs+=<:>
-func! SkipBackOverTemplate()
-    let c = CursorChar()
+fun! SmartTag#SkipBackOverTemplate()
+    let c = SmartTag#CursorChar()
     while (c == ">")
 	silent! normal %
-	if (CursorChar() != "<")
+	if (SmartTag#CursorChar() != "<")
 	    break
 	endif
-	call StepBackNonComment()
-	let c = CursorChar()
+	call SmartTag#StepBackNonComment()
+	let c = SmartTag#CursorChar()
     endwhile
 endfunc
 
-func! SameFiles(file1, file2)
+fun! SmartTag#SameFiles(file1, file2)
     return (fnamemodify(resolve(expand(a:file1)), ':p') ==
 	    \ fnamemodify(resolve(expand(a:file2)), ':p'))
 endfunc
 
 " Grab text between the given cursor positions (as returned by getpos(".")) and
 " return as a single string, lines being appended together.
-func! GetText(startPos, endPos)
+fun! SmartTag#GetText(startPos, endPos)
     let lnum = a:startPos[1]
     let line = getline(lnum)
     if (a:endPos[1] == lnum)
@@ -442,7 +217,7 @@ let s:PreTypeInclude = '\<\(typedef\|enum\|union\)\>'
 " Return the function's class name and leave the cursor on the start of the
 " member following it.  Presumes the form "Class::Member".  Cursor must be on
 " the opening "(" of the function header.
-func! GetFuncClassName()
+fun! SmartTag#GetFuncClassName()
     let str = getline(".")
     let pos = match(str, '::')
     let col = col(".") - 1
@@ -467,14 +242,14 @@ func! GetFuncClassName()
     if (pos >= 0)
 	exec 'normal ' . (pos + 1) . 'l'
     endif
-    call StepForwardNonComment()
+    call SmartTag#StepForwardNonComment()
     return strpart(str, start, pos - start)
 endfunc
 
 " Return the name of the class for the function containing the cursor.
 " Set the global g:IsInFunctionBody to 1 if we appear to be in a function body,
 " that is, between the {}.
-func! GetThisClass()
+fun! SmartTag#GetThisClass()
     let oldWin = winsaveview()
     let class = ""
     let fullClass = ""
@@ -496,32 +271,32 @@ func! GetThisClass()
 	    break	" We're stuck at start of outer {..} block.
 	endif
 	let firstTime = 0
-	if (CursorChar() != '{')
+	if (SmartTag#CursorChar() != '{')
 	    " We weren't inside a function nor a class declaration.  Maybe
 	    " we're in a function header though.  Look for a closing ")", but
 	    " not if we hit something not expected in a function header first.
 	    let g:IsInFunctionBody = 0
 	    let badPos = [0, 0, 0, 0]
-	    if (StepForwardNonComment('[{};]', '#') != 0)
+	    if (SmartTag#StepForwardNonComment('[{};]', '#') != 0)
 		let badPos = getpos(".")
 	    endif
 	    call setpos('.', oldCursor)
 	    normal 99999])
 	    let newPos = getpos(".")
-	    if (CursorCmp(newPos, oldCursor) == 0)
+	    if (SmartTag#CursorCmp(newPos, oldCursor) == 0)
 		" Cursor didn't move, so we're not inside (..)
 		" Search forward for an opening "(" first, but don't pass
 		" anything we're not expecting.
 		call setpos('.', oldCursor)
-		if (StepForwardNonComment('(', '#') != 0)
+		if (SmartTag#StepForwardNonComment('(', '#') != 0)
 		    normal %
 		    let newPos = getpos(".")
-		    if (CursorCmp(newPos, oldCursor) == 0 ||
-			\ CursorCmp(newPos, badPos) > 0)
+		    if (SmartTag#CursorCmp(newPos, oldCursor) == 0 ||
+			\ SmartTag#CursorCmp(newPos, badPos) > 0)
 			call setpos('.', oldCursor)	    " Go back
 		    endif
 		endif
-	    elseif (CursorCmp(oldCursor, badPos) > 0)
+	    elseif (SmartTag#CursorCmp(oldCursor, badPos) > 0)
 		" We were inside (..), but we hit something unexpected along
 		" the way, so abort this idea.
 		call setpos('.', oldCursor)	    " Go back
@@ -531,14 +306,14 @@ func! GetThisClass()
 		" We don't appear to be in a function heading, maybe we're in a
 		" class declaration header.
 	    "endif
-	elseif (StepBackNonComment('[)};]', '#') != 0)
+	elseif (SmartTag#StepBackNonComment('[)};]', '#') != 0)
 	    let g:IsInFunctionBody = 1
 	else
 	    1
 	endif
-	if (CursorChar() == ')')
+	if (SmartTag#CursorChar() == ')')
 	    normal %
-	    let class = GetFuncClassName()
+	    let class = SmartTag#GetFuncClassName()
 	else
 	    " Not in a function body, but maybe in a class/struct definition.
 	    let g:IsInFunctionBody = 0
@@ -546,9 +321,9 @@ func! GetThisClass()
 	    call setpos('.', oldCursor)
 	    if (search('\<\(class\|struct\|union\)\>', 'beW') > 0)
 		let cursor = getpos(".")
-		if (CursorCmp(cursor, limit) >= 0)
-		    call StepForwardNonComment() " Skip space after "class" etc
-		    if (CursorChar() =~ '\w')
+		if (SmartTag#CursorCmp(cursor, limit) >= 0)
+		    call SmartTag#StepForwardNonComment() " Skip space after "class" etc
+		    if (SmartTag#CursorChar() =~ '\w')
 			let class = expand("<cword>")
 		    endif
 		endif
@@ -577,22 +352,22 @@ endfunc
 " Find the type of the variable declared under the cursor.
 " Cursor should be on first character of identifier.
 " Return "" if this does not appear to be a declaration.
-func! FindDeclarationType()
+fun! SmartTag#FindDeclarationType()
     let oldPos = getpos(".")
     " Check character before our variable.  Should be a comma, or an identifier
     " (the type).
-    call StepBackNonComment('[^ 	*]', '#')
-    let c = CursorChar()
+    call SmartTag#StepBackNonComment('[^ 	*]', '#')
+    let c = SmartTag#CursorChar()
     if (c == '&') " Only allow one of these.  Want type &var, not a && b.
-	call StepBackNonComment('[^ 	*]', '#')
-	let c = CursorChar()
+	call SmartTag#StepBackNonComment('[^ 	*]', '#')
+	let c = SmartTag#CursorChar()
     endif
     if (c == '>')
 	normal %
-	let c = CursorChar()
+	let c = SmartTag#CursorChar()
 	if (c == '<')
-	    call StepBackNonComment('\S', '#')
-	    let c = CursorChar()
+	    call SmartTag#StepBackNonComment('\S', '#')
+	    let c = SmartTag#CursorChar()
 	endif
     endif
     if (c !~ '[a-zA-Z_0-9,]')
@@ -623,11 +398,11 @@ func! FindDeclarationType()
 	call setpos('.', oldPos)
     endif
     while (1)
-	let lineNum = StepBackNonComment('[(,>{};]', '#')
+	let lineNum = SmartTag#StepBackNonComment('[(,>{};]', '#')
 	if (lineNum <= 0)
 	    break
 	endif
-	let c = CursorChar()
+	let c = SmartTag#CursorChar()
 	if (c == '>')
 	    normal %
 	elseif (c == ',')
@@ -656,7 +431,7 @@ func! FindDeclarationType()
 	endif
     endwhile
     if (lineNum > 0)
-	call StepForwardNonComment('\S', '#')
+	call SmartTag#StepForwardNonComment('\S', '#')
     endif
 
     " Hopefully the type is now under the cursor.  Skip things like const
@@ -668,7 +443,7 @@ func! FindDeclarationType()
 	    break
 	endif
 	normal e
-	call StepForwardNonComment('\S', '#')
+	call SmartTag#StepForwardNonComment('\S', '#')
     endwhile
 
     " Avoid thinking things like "return" are types.
@@ -676,20 +451,20 @@ func! FindDeclarationType()
 	\ type == "else" || type == "goto")
 	return ""
     endif
-    if (match(CursorChar(), '\h') < 0)
+    if (match(SmartTag#CursorChar(), '\h') < 0)
 	" Expected an identifier
 	return ""
     endif
 
-    let type = TrueClassName(type)
+    let type = SmartTag#TrueClassName(type)
     while (1)
 	normal e
-	call StepForwardNonComment('\S', '#')
+	call SmartTag#StepForwardNonComment('\S', '#')
 	let line = getline(".")
 	let col = col(".") - 1
 	if (line[col] == '<')
 	    normal %
-	    call StepForwardNonComment('\S', '#')
+	    call SmartTag#StepForwardNonComment('\S', '#')
 	    let line = getline(".")
 	    let col = col(".") - 1
 	endif
@@ -697,15 +472,15 @@ func! FindDeclarationType()
 	    break
 	endif
 	normal l
-	call StepForwardNonComment('\S', '#')
-	if (match(CursorChar(), '\h') < 0)
+	call SmartTag#StepForwardNonComment('\S', '#')
+	if (match(SmartTag#CursorChar(), '\h') < 0)
 	    break	" Expected an identifier
 	endif
-	let type .= "::" . TrueClassName(expand("<cword>"))
+	let type .= "::" . SmartTag#TrueClassName(expand("<cword>"))
     endwhile
-    call StepBackNonComment('\S', '#')
+    call SmartTag#StepBackNonComment('\S', '#')
     let newPos = getpos(".")
-    if (CursorCmp(newPos, oldPos) > 0)
+    if (SmartTag#CursorCmp(newPos, oldPos) > 0)
 	" Type should have been before where cursor started.
 	return ""
     endif
@@ -715,8 +490,8 @@ func! FindDeclarationType()
     " the name of the function itself rather than a variable declaration.
     if (!isInBrackets)
 	call setpos('.', oldPos)
-	call StepForwardNonComment('[;{]', '#')
-	if (CursorChar() != ';')
+	call SmartTag#StepForwardNonComment('[;{]', '#')
+	if (SmartTag#CursorChar() != ';')
 	    return ""
 	endif
 	call setpos('.', newPos)
@@ -726,7 +501,7 @@ func! FindDeclarationType()
 endfunc
 
 " Strip <..>, (..) and [..] from the given type name and return the result.
-func! StripTemplateEtc(type)
+fun! SmartTag#StripTemplateEtc(type)
     let newType = a:type
     let prevType = ""
     while (newType != prevType)
@@ -745,7 +520,7 @@ endfunc
 " same file AND located the same way.  This can happen when the tags come from
 " different tag files, eg "tags" and "../tags".  If the latter includes tags
 " from all subfolders, then it will repeat tags from the former.
-func! UniqList(list)
+fun! SmartTag#UniqList(list)
     let i = len(a:list) - 1
     while (i > 0)
 	let j = 0
@@ -761,7 +536,7 @@ func! UniqList(list)
 endfunc
 
 " Return a tag list with no repeated entries.
-func! UniqTagList(name, splitClass)
+fun! SmartTag#UniqTagList(name, splitClass)
     let i = -1
     if (a:splitClass)
 	let i = strridx(a:name, '::')
@@ -779,7 +554,7 @@ func! UniqTagList(name, splitClass)
 	    let tag = tags[i]
 	    " Should we be checking for an exact match below?
 	    " Or maybe not bothering to remove tags at all?
-	    if (match(GetTagClass(tag), class) < 0)
+	    if (match(SmartTag#GetTagClass(tag), class) < 0)
 		" Right name, but doesn't belong to right class
 		call remove(tags, i)
 	    else
@@ -787,20 +562,20 @@ func! UniqTagList(name, splitClass)
 	    endif
 	endwhile
     endif
-    call UniqList(tags)
+    call SmartTag#UniqList(tags)
     return tags
 endfunc
 
 " Jump to the given tag.  flags is a string which may contain the following:
 " 'h' - Hide current buffer before jumping to tag.
 " 'd' - Debug mode.  Outputs debug message.
-func! GoToTag(tag, flags)
+fun! SmartTag#GoToTag(tag, flags)
     let hide = (a:flags =~ 'h')
     let debug = (a:flags =~ 'd')
     let tagFile = a:tag["filename"]
     let tagCmd = a:tag["cmd"]
-    let tagClass = GetTagClass(a:tag)
-    if (SameFiles(tagFile, '%'))
+    let tagClass = SmartTag#GetTagClass(a:tag)
+    if (SmartTag#SameFiles(tagFile, '%'))
 	1
     elseif (hide)
 	exec 'silent hide e +0 ' . tagFile
@@ -843,11 +618,11 @@ func! GoToTag(tag, flags)
 	    " Try guessing
 	    if (search('^[^/]*\<' . a:tag["name"] . '\>', 'c'))
 		if (debug)
-		    call Error("SmartTag: Couldn't find tag, just guessing")
+		    call SmartTag#Error("SmartTag: Couldn't find tag, just guessing")
 		endif
 	    else
 		if (debug)
-		    call Error("SmartTag: Couldn't find tag")
+		    call SmartTag#Error("SmartTag: Couldn't find tag")
 		endif
 		return 0
 	    endif
@@ -863,9 +638,9 @@ endfunc
 " tag represents a class, this function returns the true class name.  Eg a
 " #define or typedef representing a class will be recognised and the class name
 " is returned.
-func! TrueClassName(tag)
+fun! SmartTag#TrueClassName(tag)
     if (type(a:tag) == type(""))
-	let class = StripTemplateEtc(a:tag)
+	let class = SmartTag#StripTemplateEtc(a:tag)
 	let tags = taglist('^' . class . '$')
 	if (!exists("tags[0]"))
 	    return class
@@ -933,9 +708,9 @@ func! TrueClassName(tag)
 	    endif
 	endif
 	if (class == "")
-	    return StripTemplateEtc(tag["name"])
+	    return SmartTag#StripTemplateEtc(tag["name"])
 	endif
-	let class = StripTemplateEtc(class)
+	let class = SmartTag#StripTemplateEtc(class)
 	if (class == tag["name"])
 	    return class	" Recursive
 	endif
@@ -957,7 +732,7 @@ endfunc
 " Return the given class name with its nesting expanded, based on the given
 " tags list and scope.  Eg "Nested" may expand to "ClassB::Nested".
 " If useScope is zero, do nothing.
-func! ExpandClassNesting(class, tags, useScope, scope, splitClass)
+fun! SmartTag#ExpandClassNesting(class, tags, useScope, scope, splitClass)
     let class = a:class
     if (a:useScope)
 	let scope = a:scope
@@ -976,7 +751,7 @@ func! ExpandClassNesting(class, tags, useScope, scope, splitClass)
 	let scopeLen = strlen(scope)
 	for tag in a:tags
 	    if (has_key(tag, "kind") && "csu" =~ tag["kind"])
-		let tagClass = GetTagClass(tag)
+		let tagClass = SmartTag#GetTagClass(tag)
 		let len = strlen(tagClass)
 		if (len > longest && scopeLen >= len &&
 		    \ scope[0:len-1] == tagClass &&
@@ -1007,18 +782,18 @@ endfunc
 "   Nested2
 " When useScope is non-zero, the class names will also have their full nested
 " paths expanded.
-func! GetBaseClasses(type, nameOnly, useScope, scope, splitClass)
+fun! SmartTag#GetBaseClasses(type, nameOnly, useScope, scope, splitClass)
     let class = a:type
     if (a:nameOnly)
-	let class = StripTemplateEtc(class)
+	let class = SmartTag#StripTemplateEtc(class)
     endif
     if (class == "")
 	return [class]
     endif
     let oldIc = &ic
     set noic
-    let tags = UniqTagList(class, a:splitClass)
-    let class = ExpandClassNesting(class, tags, a:useScope, a:scope,
+    let tags = SmartTag#UniqTagList(class, a:splitClass)
+    let class = SmartTag#ExpandClassNesting(class, tags, a:useScope, a:scope,
 				   \ a:splitClass)
     let classes = [class]
 
@@ -1031,20 +806,20 @@ func! GetBaseClasses(type, nameOnly, useScope, scope, splitClass)
 	    if (a:nameOnly)
                 " If we don't do this then the split() below could go wrong if
                 " commas appear inside template lists or something.
-		let class = StripTemplateEtc(class)
+		let class = SmartTag#StripTemplateEtc(class)
 	    endif
 	    let newClasses = reverse(split(class, ","))
 	    call extend(classes, newClasses)
 	    if (!a:nameOnly)
 		" Need a stripped version now regardless
-		let class = StripTemplateEtc(tags[i]["inherits"])
+		let class = SmartTag#StripTemplateEtc(tags[i]["inherits"])
 		let newClasses = reverse(split(class, ","))
 	    endif
 	    let j = 0
 	    while (exists("newClasses[j]"))
 		let class = newClasses[j]
-		let newTags = UniqTagList(class, a:splitClass)
-		let class = ExpandClassNesting(class, newTags, a:useScope,
+		let newTags = SmartTag#UniqTagList(class, a:splitClass)
+		let class = SmartTag#ExpandClassNesting(class, newTags, a:useScope,
 					       \ a:scope, a:splitClass)
 		let newClasses[j] = class
 		for tag in newTags
@@ -1056,11 +831,11 @@ func! GetBaseClasses(type, nameOnly, useScope, scope, splitClass)
 		let j += 1
 	    endwhile
 	elseif (tags[i]["kind"] != 'f')
-	    let class = TrueClassName(tags[i])
-	    if (class != StripTemplateEtc(tags[i]["name"]))
-		let newTags = UniqTagList(class, a:splitClass)
+	    let class = SmartTag#TrueClassName(tags[i])
+	    if (class != SmartTag#StripTemplateEtc(tags[i]["name"]))
+		let newTags = SmartTag#UniqTagList(class, a:splitClass)
 		call extend(tags, newTags)
-		let class = ExpandClassNesting(class, newTags, a:useScope,
+		let class = SmartTag#ExpandClassNesting(class, newTags, a:useScope,
 					       \ a:scope, a:splitClass)
 		call add(classes, class)
 	    endif
@@ -1068,13 +843,13 @@ func! GetBaseClasses(type, nameOnly, useScope, scope, splitClass)
 	let i += 1
     endwhile
     let &ic = oldIc
-    call UniqList(classes)
+    call SmartTag#UniqList(classes)
     return classes
 endfunc
 
 " Return the name of the class/struct/union that the given taglist item belongs
 " to, or "" if it's global.
-func! GetTagClass(tag)
+fun! SmartTag#GetTagClass(tag)
     if (has_key(a:tag, "class"))
 	return a:tag["class"]
     endif
@@ -1089,13 +864,13 @@ endfunc
 
 " Return true if the given taglist item is of the given class (or struct).
 " If class is "", then only return true for global items.
-func! TagInClass(tag, class)
-    return GetTagClass(a:tag) == a:class
+fun! SmartTag#TagInClass(tag, class)
+    return SmartTag#GetTagClass(a:tag) == a:class
 endfunc
 
 " Return the type of the given item from a taglist, or "" if we can't figure it
 " out.  For functions, it's the return type we're interested in.
-func! TagType(tag, nameOnly)
+fun! SmartTag#TagType(tag, nameOnly)
     if (has_key(a:tag, "typename") || has_key(a:tag, "typeref"))
 	" This makes it easy
 	if (has_key(a:tag, "typeref"))
@@ -1167,7 +942,7 @@ func! TagType(tag, nameOnly)
 	endif
     endif
     if (origIdPos >= 0)
-	let type = StripTemplateEtc(type)
+	let type = SmartTag#StripTemplateEtc(type)
 	let type = substitute(type, '\s\+', '', 'g')
     endif
 
@@ -1176,7 +951,7 @@ func! TagType(tag, nameOnly)
     if (j >= origIdPos && has_key(a:tag, "kind") && 'vmf' =~ a:tag["kind"])
 	let oldBuf = bufnr("%")
 	let oldPos = getpos(".")
-	if (GoToTag(a:tag, 'h'))
+	if (SmartTag#GoToTag(a:tag, 'h'))
 	    " First, move cursor to column for our identifier.
 	    let line = getline(".")
 	    let col = match(line, a:tag["name"])
@@ -1184,7 +959,7 @@ func! TagType(tag, nameOnly)
 	    if (col > 0)
 		exec 'normal ' . col . 'l'
 	    endif
-	    let type = FindDeclarationType()
+	    let type = SmartTag#FindDeclarationType()
 	    if (type != "")
 		let isLocal = 1
 	    endif
@@ -1197,10 +972,10 @@ endfunc
 
 " Add the "types" fields to the given tags list.  If nameOnly is
 " non-zero then just include the name (without *, &, <..> etc).
-func! AddTypeLists(tags, nameOnly)
+fun! SmartTag#AddTypeLists(tags, nameOnly)
     for tag in a:tags
-	let type = TagType(tag, a:nameOnly)
-	let scope = GetTagClass(tag)
+	let type = SmartTag#TagType(tag, a:nameOnly)
+	let scope = SmartTag#GetTagClass(tag)
 	let len = len(scope)
 	let splitClass = 1
 	if (scope == "" || (strpart(type, 0, len) == scope &&
@@ -1211,13 +986,13 @@ func! AddTypeLists(tags, nameOnly)
 	    " the test file.
 	    let splitClass = 0
 	endif
-	let tag["types"] = GetBaseClasses(type, a:nameOnly, 1, scope,
+	let tag["types"] = SmartTag#GetBaseClasses(type, a:nameOnly, 1, scope,
 					  \ splitClass)
     endfor
 endfunc
 
 " Add the "trueClass" fields to the given tags list.
-func! AddTrueClassFields(tags)
+fun! SmartTag#AddTrueClassFields(tags)
     if (!exists('a:tags[0]["trueClass"]'))
 	for tag in a:tags
 	    " Any need to expand typedefs or #defines here?  I don't think
@@ -1230,7 +1005,7 @@ func! AddTrueClassFields(tags)
 		    "let tag["trueClass"] = scope . "::" . tag["trueClass"]
 		"endif
 	    "else
-		let tag["trueClass"] = GetTagClass(tag)
+		let tag["trueClass"] = SmartTag#GetTagClass(tag)
 	    "endif
 	endfor
     endif
@@ -1239,7 +1014,7 @@ endfunc
 " Count number of arguments in given function declaration, which should include
 " an opening "(", and preferably a closing one too.  Returns a dictionary with
 " two items: min and max.  For function calls, ignore min.
-func! CountArgs(decl)
+fun! SmartTag#CountArgs(decl)
     " Might be commas inside (..) as part of some args, so remove those
     " first, then we can count commas.
     let sig = a:decl
@@ -1295,19 +1070,19 @@ func! CountArgs(decl)
 endfunc
 
 " Add the "minArgs" and "maxArgs" fields to the given taglist.
-func! AddNumArgsFields(tags)
+fun! SmartTag#AddNumArgsFields(tags)
     for tag in a:tags
 	let tag["minArgs"] = 0
 	let tag["maxArgs"] = 99999
 	if (tag["kind"] == 'f')
 	    if (has_key(tag, "signature"))
-		let num = CountArgs(tag["signature"])
+		let num = SmartTag#CountArgs(tag["signature"])
 		let tag["minArgs"] = num["min"]
 		let tag["maxArgs"] = num["max"]
 	    elseif (tag["cmd"][0] == '/')
 		" No "signature" field.  Let's see what we can figure out from
 		" the search cmd.
-		let num = CountArgs(tag["cmd"])
+		let num = SmartTag#CountArgs(tag["cmd"])
 		let tag["minArgs"] = num["min"]
 		let tag["maxArgs"] = num["max"]
 	    endif
@@ -1316,7 +1091,7 @@ func! AddNumArgsFields(tags)
 endfunc
 
 " Show the state of the tag list
-func! DebugTagLists(title, tagLists, debug)
+fun! SmartTag#DebugTagLists(title, tagLists, debug)
     if (!a:debug)
 	return
     endif
@@ -1324,7 +1099,7 @@ func! DebugTagLists(title, tagLists, debug)
     let lev = 0
     while (exists("a:tagLists[lev]"))
 	echo "  level " . lev
-	call AddTrueClassFields(a:tagLists[lev])
+	call SmartTag#AddTrueClassFields(a:tagLists[lev])
 	for tag in a:tagLists[lev]
 	    let str = "   "
 	    if (has_key(tag, "kind"))
@@ -1362,7 +1137,7 @@ endfunc
 " first, if present.  Then on the "nice" field.  Then "argError".
 " Then "fileMatchLen".  These are all fields we add ourselves along the way to
 " find the best tag.
-func! TagClassCmp(tag1, tag2)
+fun! SmartTag#TagClassCmp(tag1, tag2)
     if (has_key(a:tag1, "typeIndex") && has_key(a:tag2, "typeIndex"))
 	if (a:tag1["typeIndex"] < a:tag2["typeIndex"])
 	    return -1
@@ -1425,7 +1200,7 @@ call add(OpsTable, {'->*' : '2', '<<=' : '2', '>>=' : '2'})
 " "t" - Fill in the "types" field for tags.  TODO: Needs work.
 " "k" - Keep bad tags, ie tag list is just reordered, but all entries are kept.
 " "d" - Debug
-func! GetNiceTagList(niceTags, flags)
+fun! SmartTag#GetNiceTagList(niceTags, flags)
     let nameOnly = (a:flags =~ 'n')
     let needTypes = (a:flags =~ 't')
     let keepBadTags = (a:flags =~ 'k')
@@ -1445,7 +1220,7 @@ func! GetNiceTagList(niceTags, flags)
     let level = 0
     let tagLists = []
     let badTags = []
-    call StepForwardNonComment('\S', 'c')   " Skip any leading space
+    call SmartTag#StepForwardNonComment('\S', 'c')   " Skip any leading space
     let line = getline(".")
     let col = col(".") - 1
     let op = ""
@@ -1458,7 +1233,7 @@ func! GetNiceTagList(niceTags, flags)
 	if (origWord == "operator")
 	    let gotOpWord = 1
 	endif
-	call StartOfWord()
+	call SmartTag#StartOfWord()
 	normal w
 	let line = getline(".")
 	let col = col(".") - 1
@@ -1511,8 +1286,8 @@ func! GetNiceTagList(niceTags, flags)
 	    normal wb
 	else
 	    let oldCursor = getpos(".")
-	    call StartOfWord()
-	    call StepBackNonComment('\S', '#')
+	    call SmartTag#StartOfWord()
+	    call SmartTag#StepBackNonComment('\S', '#')
 	    let prevWord = expand("<cword>")
 	    call setpos('.', oldCursor)
 	    if (prevWord == "goto")
@@ -1545,7 +1320,7 @@ func! GetNiceTagList(niceTags, flags)
 	    " Go to opening bracket
 	    let oldCursor = getpos(".")
 	    normal %
-	    let op = CursorChar()
+	    let op = SmartTag#CursorChar()
 	    if (op != '[' && op != '(')
 		let op = ""
 		call setpos('.', oldCursor)
@@ -1582,7 +1357,7 @@ func! GetNiceTagList(niceTags, flags)
 	if (col >= 7 && strpart(line, col - 7, 8) == 'operator')
 	    let gotOpWord = 1
 	endif
-	let tags = UniqTagList('operator ' . escape(op, '*[]~'), 0)
+	let tags = SmartTag#UniqTagList('operator ' . escape(op, '*[]~'), 0)
 	if (op == 'delete')
 	    " No delete operator, so let's jump to the destructor instead.
 	    let wantDestructor = 1
@@ -1592,7 +1367,7 @@ func! GetNiceTagList(niceTags, flags)
 	elseif (gotOpWord)
 	    " "operator" word given explicitly so don't check for
 	    " pre/post-unary or binary via context.
-	    let finalClass = GetThisClass()
+	    let finalClass = SmartTag#GetThisClass()
 	    let wantDestructor = 0
 	    if (debug)
 		echo 'Explicit operator ' . op
@@ -1641,7 +1416,7 @@ func! GetNiceTagList(niceTags, flags)
 		    endif
 		endwhile
 		" Don't use \h below since "a + 3" is valid.
-		if (CursorChar() =~ '\w')
+		if (SmartTag#CursorChar() =~ '\w')
 		    let hasIdAfter = 1
 		    let afterPos = getpos(".")
 		endif
@@ -1651,7 +1426,7 @@ func! GetNiceTagList(niceTags, flags)
 		call setpos('.', opPos)
 		while (1)
 		    " Skip space and comments
-		    if (StepBackNonComment('\S', '#') <= 0)
+		    if (SmartTag#StepBackNonComment('\S', '#') <= 0)
 			break
 		    endif
 		    let line = getline(".")
@@ -1679,7 +1454,7 @@ func! GetNiceTagList(niceTags, flags)
 			break	" Didn't find a post-unary op
 		    endif
 		endwhile
-		let c = CursorChar()
+		let c = SmartTag#CursorChar()
 		if (c =~ '\w')
 		    let hasIdBefore = 1
 		    "let beforePos = getpos(".")
@@ -1700,8 +1475,8 @@ func! GetNiceTagList(niceTags, flags)
 		" Need to find type of identifier on the left.
 		call setpos('.', opPos)
 		while (1)
-		    call StepBackNonComment('[])a-zA-Z_0-9]', '#')
-		    let c = CursorChar()
+		    call SmartTag#StepBackNonComment('[])a-zA-Z_0-9]', '#')
+		    let c = SmartTag#CursorChar()
 		    if (c != ')' && c != ']')
 			break
 		    endif
@@ -1728,26 +1503,26 @@ func! GetNiceTagList(niceTags, flags)
 		endif
 		" Skip past any p->m.a[4]->b(4).c sequence
 		" TODO: Leading '(' could confuse us.  Oh well.
-		while (CursorChar() =~ '\h' && search('\W', 'W'))
+		while (SmartTag#CursorChar() =~ '\h' && search('\W', 'W'))
 		    let line = getline(".")
 		    let col = col(".") - 1
 		    let c = line[col]
 		    while (c == '[' || c == '(' || c == '<')
 			normal %
-			if (CursorChar() == c)
+			if (SmartTag#CursorChar() == c)
 			    break	" % failed
 			endif
-			call StepForwardNonComment()
+			call SmartTag#StepForwardNonComment()
 			let line = getline(".")
 			let col = col(".") - 1
 			let c = line[col]
 		    endwhile
 		    if (c == '.')
-			call StepForwardNonComment()
+			call SmartTag#StepForwardNonComment()
 		    elseif ((c == '-' && line[col + 1] == '>') ||
 			    \ (c == ':' && line[col + 1] == ':'))
 			normal l
-			call StepForwardNonComment()
+			call SmartTag#StepForwardNonComment()
 		    endif
 		endwhile
 		call search('\w', 'bW')
@@ -1763,17 +1538,17 @@ func! GetNiceTagList(niceTags, flags)
 	endif
 	if (op != "")
 	    if (needTypes)
-		call AddTypeLists(tags, nameOnly)
+		call SmartTag#AddTypeLists(tags, nameOnly)
 	    endif
 	    call add(tagLists, tags)
-	    call DebugTagLists(" Operator tags:", tagLists, debug)
+	    call SmartTag#DebugTagLists(" Operator tags:", tagLists, debug)
 	    let level += 1
 	endif
     endif
     if (op != "")
 	let origWord = 'operator ' . op
     else
-	call StartOfWord()
+	call SmartTag#StartOfWord()
 	let origWord = expand("<cword>")
     endif
     let origWordPos = getpos(".")
@@ -1793,11 +1568,11 @@ func! GetNiceTagList(niceTags, flags)
 		let id = '\~' . id   " For destructors include the ~
 		normal h
 	    endif
-	    let tags = UniqTagList(id, 0)
+	    let tags = SmartTag#UniqTagList(id, 0)
 	    if (level > 0 || needTypes)
-		call AddTypeLists(tags, nameOnly)
+		call SmartTag#AddTypeLists(tags, nameOnly)
 	    endif
-	    call StepBackNonComment()
+	    call SmartTag#StepBackNonComment()
 	    let line = getline(".")
 	    let col = col(".") - 1
 	    if (debug)
@@ -1811,15 +1586,15 @@ func! GetNiceTagList(niceTags, flags)
 	    call add(tags, {})
 	    let tags[0]["name"] = finalClass
 	    let tags[0]["kind"] = "c"
-	    let tags[0]["types"] = GetBaseClasses(finalClass, nameOnly, 1,
-						  \ GetThisClass(), 0)
+	    let tags[0]["types"] = SmartTag#GetBaseClasses(finalClass, nameOnly, 1,
+						  \ SmartTag#GetThisClass(), 0)
 	    let done = 1
 	elseif (col > 0 && line[col-1:col] == "::")
 	    " Identifier is preceded by a class or it's explicitly global
 	    normal h
-	    call StepBackNonComment()
-	    call SkipBackOverTemplate()
-	    let c = CursorChar()
+	    call SmartTag#StepBackNonComment()
+	    call SmartTag#SkipBackOverTemplate()
+	    let c = SmartTag#CursorChar()
 	    if (match(c, '\w') < 0)	" No identifier under cursor
 		" Explicitly global, eg ::glob
 		let class = ""
@@ -1830,22 +1605,22 @@ func! GetNiceTagList(niceTags, flags)
 		" Class name is given, eg Class::Class2::Class3::mMember
 		let class = expand("<cword>")
 		normal wb
-		call StepBackNonComment()
+		call SmartTag#StepBackNonComment()
 		let line = getline(".")
 		let col = col(".") - 1
 		while (col > 0 && line[col-1:col] == "::")
 		    normal h
-		    call StepBackNonComment()
-		    call SkipBackOverTemplate()
-		    let c = CursorChar()
+		    call SmartTag#StepBackNonComment()
+		    call SmartTag#SkipBackOverTemplate()
+		    let c = SmartTag#CursorChar()
 		    if (match(c, '\w') < 0)	" No identifier under cursor
 			break
 		    endif
 		    let preClass = expand("<cword>")
-		    let preClass = TrueClassName(preClass)
+		    let preClass = SmartTag#TrueClassName(preClass)
 		    let class = preClass . "::" . class
 		    normal wb
-		    call StepBackNonComment()
+		    call SmartTag#StepBackNonComment()
 		    let line = getline(".")
 		    let col = col(".") - 1
 		endwhile
@@ -1861,10 +1636,10 @@ func! GetNiceTagList(niceTags, flags)
 	    if (line[col] == '>')
 		normal h
 	    endif
-	    call StepBackNonComment()
+	    call SmartTag#StepBackNonComment()
 	    while (1)
 		" Skip back past array index/function args/template
-		let c = CursorChar()
+		let c = SmartTag#CursorChar()
 		if ('])>' !~ c)
 		    break
 		endif
@@ -1879,22 +1654,22 @@ func! GetNiceTagList(niceTags, flags)
 		    " so, it's likely a cast, and the final type is given in
 		    " those inner brackets.
 		    let tmpPos = getpos(".")
-		    call StepForwardNonComment()
-		    if (CursorChar() == '(')
+		    call SmartTag#StepForwardNonComment()
+		    if (SmartTag#CursorChar() == '(')
 			" Looks like it might be a cast.  Check that character
 			" before first "(" won't evaluate to a function name.
 			call setpos('.', tmpPos)
-			call StepBackNonComment()
-			let c = CursorChar()
+			call SmartTag#StepBackNonComment()
+			let c = SmartTag#CursorChar()
 			if (c !~ '\w' && c !~ '[]>]')
 			    " Looks like a cast alright.  Find type name after
 			    " inner bracket.
 			    call setpos('.', tmpPos)
-			    call StepForwardNonComment()    " Skip to "("
-			    call StepForwardNonComment('[^	 *&]')
-			    if (CursorChar() =~ '\w')
+			    call SmartTag#StepForwardNonComment()    " Skip to "("
+			    call SmartTag#StepForwardNonComment('[^	 *&]')
+			    if (SmartTag#CursorChar() =~ '\w')
 				let finalClass = expand("<cword>")
-				let finalClass = TrueClassName(finalClass)
+				let finalClass = SmartTag#TrueClassName(finalClass)
 				if (debug)
 				    echo " C-style cast to type " . finalClass
 				endif
@@ -1904,7 +1679,7 @@ func! GetNiceTagList(niceTags, flags)
 		    endif
 		    call setpos('.', tmpPos)
 		endif
-		call StepBackNonComment()
+		call SmartTag#StepBackNonComment()
 	    endwhile
 	    " If identifier under cursor is now a C++ cast operator, then we
 	    " presumably went back past (..) first, then past <..>.  Look
@@ -1918,13 +1693,13 @@ func! GetNiceTagList(niceTags, flags)
 		normal w
 		let line = getline(".")
 		if (line[col(".") - 1] == "<")
-		    call StepForwardNonComment()
+		    call SmartTag#StepForwardNonComment()
 		    let col = col(".") - 1
-		    call StepBackNonComment()
+		    call SmartTag#StepBackNonComment()
 		    normal %
-		    call StepBackNonComment()
+		    call SmartTag#StepBackNonComment()
 		    let finalClass = strpart(line, col, col(".") - col)
-		    let finalClass = TrueClassName(finalClass)
+		    let finalClass = SmartTag#TrueClassName(finalClass)
 		    if (debug)
 			echo " C++ cast found to type " . finalClass
 		    endif
@@ -1936,7 +1711,7 @@ func! GetNiceTagList(niceTags, flags)
 	    let isLocal = 0
 	    let type = ""
 	    call setpos('.', oldCursor)
-	    let class = GetThisClass()	" To set g:IsInFunctionBody
+	    let class = SmartTag#GetThisClass()	" To set g:IsInFunctionBody
 	    if (debug)
 		echo " Current context is class <" . class . ">"
 	    endif
@@ -1951,7 +1726,7 @@ func! GetNiceTagList(niceTags, flags)
 		" stuff [{ up.
 		call searchdecl(id, 0, 1)
 		let wasPos = getpos(".")
-		let type = FindDeclarationType()
+		let type = SmartTag#FindDeclarationType()
 		if (type != "")
 		    let isLocal = 1
 		endif
@@ -1968,7 +1743,7 @@ func! GetNiceTagList(niceTags, flags)
 		let tags[0]["filename"] = expand("%")
 		let tags[0]["cmd"] = "" . line(".")
 		let tags[0]["kind"] = "v"
-		let tags[0]["types"] = GetBaseClasses(type, nameOnly, 0, "", 0)
+		let tags[0]["types"] = SmartTag#GetBaseClasses(type, nameOnly, 0, "", 0)
 		let done = 1
 		if (debug)
 		    echo " Local var " . id . " of type " . type
@@ -1983,10 +1758,10 @@ func! GetNiceTagList(niceTags, flags)
 		" hope to find contained in the ex cmd for the tag.
 		call setpos('.', oldCursor)	" Still required?
 		if (class != "")
-		    let classes = GetBaseClasses(class, 1, 0, "", 0)
+		    let classes = SmartTag#GetBaseClasses(class, 1, 0, "", 0)
 		    let minIndex = 999999
 		    for tag in tags
-			let tagClass = substitute(GetTagClass(tag),
+			let tagClass = substitute(SmartTag#GetTagClass(tag),
 						  \ '::__anon\d\+$', '', '')
 			let idx = index(classes, tagClass)
 			if (idx >= 0 && idx < minIndex)
@@ -2011,7 +1786,7 @@ func! GetNiceTagList(niceTags, flags)
 		endif
 		if (!exists("finalClass"))  " Try a global
 		    for tag in tags
-			if (TagInClass(tag, ""))
+			if (SmartTag#TagInClass(tag, ""))
 			    let done = 1
 			    if (debug)
 				echo " Global identifier"
@@ -2043,11 +1818,11 @@ func! GetNiceTagList(niceTags, flags)
 	    endif
 	endif
 	call add(tagLists, tags)
-	call DebugTagLists(" Before removing bad tags:", tagLists, debug)
+	call SmartTag#DebugTagLists(" Before removing bad tags:", tagLists, debug)
 	if (level > 0)
 	    " Remove types from tagLists[level] which aren't classes from
 	    " tagLists[level - 1]
-	    call AddTrueClassFields(tagLists[level - 1])
+	    call SmartTag#AddTrueClassFields(tagLists[level - 1])
 	    let i = len(tags) - 1
 	    while (i >= 0)	" For each type at [level]
 		let found = 0
@@ -2157,7 +1932,7 @@ func! GetNiceTagList(niceTags, flags)
 	    endif
 	    let lev -= 1
 	endwhile
-	call DebugTagLists(" After removing bad tags:", tagLists, debug)
+	call SmartTag#DebugTagLists(" After removing bad tags:", tagLists, debug)
 	let lev = 0
 	while (lev <= level)
 	    if (!exists("tagLists[lev][1]"))
@@ -2195,18 +1970,18 @@ func! GetNiceTagList(niceTags, flags)
 	endif
 	if (numArgs >= 0)
 	    let isFunction = 1
-	elseif (CursorChar() == '(')
+	elseif (SmartTag#CursorChar() == '(')
 	    let isFunction = 1
 	    " Grab text between (..) and count args.
 	    let startPos = getpos(".")
 	    normal %
 	    let endPos = getpos(".")
-	    if (CursorCmp(startPos, endPos) != 0)
-		let numArgs = CountArgs(GetText(startPos, endPos))["max"]
+	    if (SmartTag#CursorCmp(startPos, endPos) != 0)
+		let numArgs = SmartTag#CountArgs(SmartTag#GetText(startPos, endPos))["max"]
 	    endif
 	else
 	    normal b
-	    call StepBackNonComment()
+	    call SmartTag#StepBackNonComment()
 	    let line = getline(".")
 	    let col = col(".") - 1
 	    if (strpart(line, col - 2, 3) == "new" &&
@@ -2222,7 +1997,7 @@ func! GetNiceTagList(niceTags, flags)
 	    endif
 	endif
 	if (numArgs >= 0)
-	    call AddNumArgsFields(tags)
+	    call SmartTag#AddNumArgsFields(tags)
 	    for tag in tags
 		if (numArgs < tag["minArgs"])	" Too few args
 		    let tag["argError"] = tag["minArgs"] - numArgs
@@ -2257,8 +2032,8 @@ func! GetNiceTagList(niceTags, flags)
 	    endwhile
 	    let tag["fileMatchLen"] = len
 	endfor
-	call sort(tags, "TagClassCmp")
-	call DebugTagLists(" Post sort:", tagLists, debug)
+	call sort(tags, "SmartTag#TagClassCmp")
+	call SmartTag#DebugTagLists(" Post sort:", tagLists, debug)
 	"for tag in tags
 	    "if (has_key(tag, "nice"))
 		"unlet tag["nice"]
@@ -2275,18 +2050,18 @@ func! GetNiceTagList(niceTags, flags)
 	" what type the identifier is.
 	let tag = tags[0]
 	if (!has_key(tag, "types"))
-	    call AddTypeLists(tags, 1)
+	    call SmartTag#AddTypeLists(tags, 1)
 	    let tag = tags[0]
 	endif
 	if (has_key(tag, "types"))
 	    for class in tag["types"]
 		" First try delete operator.  Remove any tags that aren't our
 		" type.
-		let tags = UniqTagList('operator delete', 0)
+		let tags = SmartTag#UniqTagList('operator delete', 0)
 		let i = 0
 		while (exists("tags[i]"))
 		    let tag = tags[i]
-		    if (GetTagClass(tag) != class)
+		    if (SmartTag#GetTagClass(tag) != class)
 			call remove(tags, i)
 		    else
 			let i += 1
@@ -2295,11 +2070,11 @@ func! GetNiceTagList(niceTags, flags)
 	    endfor
 	endif
 	if (empty(tags))
-	    let tags = UniqTagList('\~' . class, 0)
+	    let tags = SmartTag#UniqTagList('\~' . class, 0)
 	endif
     elseif (keepBadTags)
 	call extend(tags, badTags)
-	call DebugTagLists("Bad tags appended:", tagLists, debug)
+	call SmartTag#DebugTagLists("Bad tags appended:", tagLists, debug)
     endif
     if (debug)
 	echo "Final tags list:"
@@ -2319,35 +2094,35 @@ endfunc
 
 " Return a list of possible types for the identifier under the cursor.
 " TODO: This doesn't work very well.
-func! GetTypeList(nameOnly)
+fun! SmartTag#GetTypeList(nameOnly)
     let flags = "t"
     if (a:nameOnly)
 	flags .= "n"
     endif
     let tags = []
-    let id = GetNiceTagList(tags, flags)
+    let id = SmartTag#GetNiceTagList(tags, flags)
     let types = []
     for tag in tags
 	if (has_key(tag, "types"))
 	    call extend(types, tag["types"])
 	endif
     endfor
-    call UniqList(types)
+    call SmartTag#UniqList(types)
     return types
 endfunc
 
 " Show possible types for identifier under cursor.
 " TODO: This doesn't work very well.
 " Eg something like "static type blah" finds type as "static".
-func! ShowType()
-    let types = GetTypeList(0)
+fun! SmartTag#ShowType()
+    let types = SmartTag#GetTypeList(0)
     if (!exists("types[0]"))
-	call Error("Couldn't find type")
+	call SmartTag#Error("Couldn't find type")
 	return
     endif
     for type in types
 	let str = 'Type'
-	let bases = GetBaseClasses(type, 0, 0, "", 0)
+	let bases = SmartTag#GetBaseClasses(type, 0, 0, "", 0)
 	for base in bases
 	    let str .= ': ' . base . ' '
 	endfor
@@ -2361,16 +2136,16 @@ endfunc
 "   "goto": jump to the tag
 "   "split": split to the tag in a new window
 "   "tab": open a new tab for the tag
-func! SmartTag(mode)
+fun! SmartTag#SmartTag(mode)
     " Get identifier under cursor
     let flags = "n"
     if (a:mode == "debug")
 	let flags .= "d"
     endif
     let tags = []
-    let id = GetNiceTagList(tags, flags)
+    let id = SmartTag#GetNiceTagList(tags, flags)
     if (!exists("tags[0]"))
-	call Error("SmartTag: tag not found: " . id)
+	call SmartTag#Error("SmartTag: tag not found: " . id)
 	return
     endif
 
@@ -2388,18 +2163,18 @@ func! SmartTag(mode)
     elseif (a:mode == "tab")
 	tab split
     elseif (a:mode != "debug" && a:mode != "goto")
-	call Error('SmartTag: Unknown mode "' . a:mode . '")
+	call SmartTag#Error('SmartTag: Unknown mode "' . a:mode . '")
 	return
     endif
 
     if (a:mode == "debug")
 	echo len(tags) . ' tags for "' . id . '", class "' .
-	    \ GetTagClass(tags[0]) . '", file "' . tagFile . '"'
+	    \ SmartTag#GetTagClass(tags[0]) . '", file "' . tagFile . '"'
 	echo 'cmd "' . tagCmd . '"'
     elseif (tagFile == "")
 	exec 'tag ' . id
     else
-	call GoToTag(tag, 'd')
+	call SmartTag#GoToTag(tag, 'd')
     endif
 endfunc
 
@@ -2414,7 +2189,7 @@ function! SmartTagFunc(pattern, flags)
 	"let oldWrap = &wrap
 	"set wrap
 	let tags = []
-	let id = GetNiceTagList(tags, 'nk')
+	let id = SmartTag#GetNiceTagList(tags, 'nk')
 	"let &wrap = oldWrap
 	return tags
     else
@@ -2432,7 +2207,7 @@ function! SmartTagFunc(pattern, flags)
 		" submatch.  Let's allow submatches, as with the tag name
 		" itself.  So ":tag B::mA" will find ClassB::mA.
 		"if (GetTagClass(tags[i]) != class)
-		if (match(GetTagClass(tags[i]), class) < 0)
+		if (match(SmartTag#GetTagClass(tags[i]), class) < 0)
 		    call remove(tags, i)
 		else
 		    let i += 1
