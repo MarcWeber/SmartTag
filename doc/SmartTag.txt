@@ -223,4 +223,10 @@
 " level 0 still has more than one (further looking won't be able to resolve
 " it).
 "
+"====================
+" latest version:
+"====================
+" www.github.com/MarcWeber/SmartTag
+" svn access (git mirror, readonly): http://svn.github.com/MarcWeber/SmartTag
+"
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
