@@ -1,7 +1,9 @@
-" This script tests the SmartTags script.  Load a test file and run the script.
+" This script tests the SmartTag script.  Load a test file and run the script.
 " Test files should have "#blah" with the # above any identifier whose tag
 " should be tested.  Then the line before the correct tag destination should
 " have "// blah:".  "blah" can be any identifier to label the tag.
+" Note: This script should be run from both TestTags.cpp and TestTags.h for a
+" full test.
 
 " Use the following to choose whether to find all errors, or stop at the first
 " one.  In either case, the cursor is left on the first erroneous tag.
@@ -21,7 +23,7 @@ while (!stopOnFirstError || numErrors == 0)
     let lineNum = line(".")
     let col = col(".")
     split
-    call SmartTag("goto")
+    call SmartTag#SmartTag("goto")
     normal k
     let line = getline(".")
     if (match(line, '\<' . escape(id, '~') . ':') < 0)

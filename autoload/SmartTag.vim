@@ -1,4 +1,87 @@
-" usage and license see doc/SmartTag.txt
+"===============================
+"========== SmartTag ===========
+"======= by Robert Webb ========
+"== http://www.software3d.com ==
+"== Stella4D AT gmail DOT com ==
+"===============================
+"
+" License: This file is placed in the public domain.
+" But please let me know if you modify it, and please keep the reference above
+" to me as the author if redistributing.
+"
+" Use context to tag more sensibly:
+" - Try to resolve ambiguous tags
+" - Tag to overloaded operators
+" - Tag with cursor on "delete" to jump to destructor
+" - Tag to local variables and goto labels (not defined in tags file)
+"
+" See doc/SmartTag.txt for usage.
+"
+"====================
+"=== How it works ===
+"====================
+"
+" If the tag under the cursor is ambiguous, look back before identifier for
+" ., -> or ::. If found, try to establish the type of the preceding
+" identifier. This narrows the possible tags for our original identifier.
+" It we still have more than one possibility, then search back further.
+"
+" If ::, preceding identifier gives us the class.
+" If . or ->, may need to recursively go back past successive . or ->
+" If none of the above found, it may be a member of the class of the current
+" function. Failing that, look for a local or global var, or tag normally.
+"
+" -------------------
+" --- More detail ---
+" -------------------
+"
+" Example: Cursor on "a" below.
+" C++ code: d -> preId -> id -> a
+" level: 3 2 1 0
+" Types: Cd1::Td1 Cc1::Tc1 Cb1::Ca1 Ca1::Ta1
+" Types: Cd2::Cc3 Cc2::Cb1 Cb1::Ca2 Ca2::Ta2
+" Types: Cd3::Cc4 Cc3::Tc2 Cb2::Tb1 Ca3::Ta3
+" Types: Cd4::Td2 Cc4::Cb3 Cb3::Ca5 Ca4::Ta4
+" Types: Cb4::Ca6 Ca5::Ta5
+" Types: Ca6::Ta6
+" Types: Ca7::Ta7
+"
+" We build up a list of possible types for "a". If there's more than one, then
+" we look back past the "->" to "id" and find its possible types. This may
+" eliminate some of the possible types for "a". If we still have more than one
+" possible type, then we continue looking back.
+"
+" At level 0:
+" [0] Ca1::Ta1 Ca2::Ta2 Ca3::Ta3 Ca4::Ta4 Ca5::Ta5 Ca6::Ta6 Ca7::Ta7
+"
+" At level 1:
+" Remove [1] Tb1 which doesn't appear in [0]
+" Remove [0] Ca3,Ca4,Ca7 which don't appear in [1]
+" [0] Ca1::Ta1 Ca2::Ta2 Ca5::Ta5 Ca6::Ta6
+" [1] Cb1::Ca1 Cb1::Ca2 Cb3::Ca5 Cb4::Ca6
+"
+" At level 2:
+" Remove [2] Tc1,Tc2 which don't appear in [1]
+" Remove [1] Cb4 which doesn't appear in [2]
+" Remove [0] Ca6 which doesn't appear in [1]
+" [0] Ca1::Ta1 Ca1::Ta2 Ca2::Ta5
+" [1] Cb1::Ca1 Cb1::Ca2 Cb3::Ca1
+" [2] Cc1::Cb1 Cc4::Cb3
+"
+" At level 3:
+" Remove [3] Td1,Td2,Cc3 which don't appear in [2]
+" Remove [2] Cc1 which doesn't appear in [3]
+" Remove [1] Cb1 which doesn't appear in [2]
+" Remove [0] Ca2 which doesn't appear in [1]
+" [0] Ca1::Ta1 Ca1::Ta2
+" [1] Cb3::Ca1
+" [2] Cc4::Cb3
+" [3] Cd3::Cc4
+"
+" If any level has only one possible type then we can stop looking, even if
+" level 0 still has more than one (further looking won't be able to resolve
+" it).
+"
 
 let s:oldCpo = &cpo
 set cpo&vim
@@ -351,7 +434,7 @@ endfunc
 
 " Find the type of the variable declared under the cursor.
 " Cursor should be on first character of identifier.
-" Return "" if this does not appear to be a declaration.
+" Return "" if this does not appear to be a local declaration.
 fun! SmartTag#FindDeclarationType()
     let oldPos = getpos(".")
     " Check character before our variable.  Should be a comma, or an identifier
@@ -373,12 +456,22 @@ fun! SmartTag#FindDeclarationType()
     if (c !~ '[a-zA-Z_0-9,]')
 	return ""
     endif
-    let type = expand("<cword>")
-    if (type == "return" || type == "new" || type == "delete" ||
-	\ type == "else" || type == "goto")
-	return ""
+    if (c != ',')
+	let type = expand("<cword>")
+	if (type == "return" || type == "new" || type == "delete" ||
+	    \ type == "else" || type == "case" || type == "goto")
+	    return ""
+	endif
+	call setpos('.', oldPos)
+
+	" We may still have got here for "int a = b * id", although that's not
+	" a declaration for id.  Check there are no "="s earlier on the line.
+	let col = col(".") - 1
+	let line = strpart(getline("."), 0, col)
+	if (match(line, '=') >= 0)
+	    return ""
+	endif
     endif
-    call setpos('.', oldPos)
 
     " Check we're not in a function call, ie not inside (..)
     silent! normal [(
@@ -424,6 +517,15 @@ fun! SmartTag#FindDeclarationType()
 			exec 'normal ' . commaCol . 'l'
 		    endif
 		endif
+		let ignore = SmartTag#GetThisClass() " Set IsInFunctionBody
+		if (g:IsInFunctionBody)
+		    " We're not in the function header, we're in a function
+		    " call or if-statement etc, so not a variable declaration.
+		    " Eg:
+		    " if (a * b > 0)
+		    " func(a * b);
+		    return ""
+		endif
 		break
 	    endif
 	else " One of {};
@@ -448,7 +550,7 @@ fun! SmartTag#FindDeclarationType()
 
     " Avoid thinking things like "return" are types.
     if (type == "return" || type == "new" || type == "delete" ||
-	\ type == "else" || type == "goto")
+	\ type == "else" || type == "case" || type == "goto")
 	return ""
     endif
     if (match(SmartTag#CursorChar(), '\h') < 0)
@@ -1199,14 +1301,17 @@ call add(OpsTable, {'->*' : '2', '<<=' : '2', '>>=' : '2'})
 " "n" - Name only
 " "t" - Fill in the "types" field for tags.  TODO: Needs work.
 " "k" - Keep bad tags, ie tag list is just reordered, but all entries are kept.
+" "f" - Use if calling from 'tagfunc'.  Otherwise we disable tagfunc
+"	temporarily.
 " "d" - Debug
 fun! SmartTag#GetNiceTagList(niceTags, flags)
     let nameOnly = (a:flags =~ 'n')
     let needTypes = (a:flags =~ 't')
     let keepBadTags = (a:flags =~ 'k')
+    let viaTagfunc = (a:flags =~ 'f')
     let debug = (a:flags =~ 'd')
     let oldWin = winsaveview()
-    if (exists("&tagfunc"))
+    if (!viaTagfunc && exists("&tagfunc"))
 	" Don't want our calls to taglist() to act recursively.
 	let oldTagFunc = &tagfunc
 	let &tagfunc = ""
@@ -1305,7 +1410,7 @@ fun! SmartTag#GetNiceTagList(niceTags, flags)
 		    endif
 		    let &matchpairs = oldMatchpairs
 		    let &ic = oldIc
-		    if (exists("&tagfunc"))
+		    if (!viaTagfunc && exists("&tagfunc"))
 			let &tagfunc = oldTagFunc
 		    endif
 		    call winrestview(oldWin)
@@ -1586,8 +1691,8 @@ fun! SmartTag#GetNiceTagList(niceTags, flags)
 	    call add(tags, {})
 	    let tags[0]["name"] = finalClass
 	    let tags[0]["kind"] = "c"
-	    let tags[0]["types"] = SmartTag#GetBaseClasses(finalClass, nameOnly, 1,
-						  \ SmartTag#GetThisClass(), 0)
+	    let tags[0]["types"] = SmartTag#GetBaseClasses(finalClass,
+				    \ nameOnly, 1, SmartTag#GetThisClass(), 0)
 	    let done = 1
 	elseif (col > 0 && line[col-1:col] == "::")
 	    " Identifier is preceded by a class or it's explicitly global
@@ -1665,7 +1770,7 @@ fun! SmartTag#GetNiceTagList(niceTags, flags)
 			    " Looks like a cast alright.  Find type name after
 			    " inner bracket.
 			    call setpos('.', tmpPos)
-			    call SmartTag#StepForwardNonComment()    " Skip to "("
+			    call SmartTag#StepForwardNonComment() " Skip to "("
 			    call SmartTag#StepForwardNonComment('[^	 *&]')
 			    if (SmartTag#CursorChar() =~ '\w')
 				let finalClass = expand("<cword>")
@@ -1743,7 +1848,8 @@ fun! SmartTag#GetNiceTagList(niceTags, flags)
 		let tags[0]["filename"] = expand("%")
 		let tags[0]["cmd"] = "" . line(".")
 		let tags[0]["kind"] = "v"
-		let tags[0]["types"] = SmartTag#GetBaseClasses(type, nameOnly, 0, "", 0)
+		let tags[0]["types"] = SmartTag#GetBaseClasses(type, nameOnly,
+								\ 0, "", 0)
 		let done = 1
 		if (debug)
 		    echo " Local var " . id . " of type " . type
@@ -2084,7 +2190,7 @@ fun! SmartTag#GetNiceTagList(niceTags, flags)
     endif
     let &matchpairs = oldMatchpairs
     let &ic = oldIc
-    if (exists("&tagfunc"))
+    if (!viaTagfunc && exists("&tagfunc"))
 	let &tagfunc = oldTagFunc
     endif
     call winrestview(oldWin)
@@ -2178,7 +2284,7 @@ fun! SmartTag#SmartTag(mode)
     endif
 endfunc
 
-function! SmartTagFunc(pattern, flags)
+fun! SmartTag#SmartTagFunc(pattern, flags)
     if (a:flags =~? 'c')
 	" We set wrap in an attempt to avoid a bug in vim where, even though we
 	" use winrestview(), the original window ends up scrolling from where
@@ -2189,7 +2295,7 @@ function! SmartTagFunc(pattern, flags)
 	"let oldWrap = &wrap
 	"set wrap
 	let tags = []
-	let id = SmartTag#GetNiceTagList(tags, 'nk')
+	let id = SmartTag#GetNiceTagList(tags, 'nkf')
 	"let &wrap = oldWrap
 	return tags
     else

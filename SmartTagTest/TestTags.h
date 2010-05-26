@@ -7,6 +7,14 @@ class ClassB;
 class ClassC;
 class ClassAA;
 
+enum
+{
+	// enumBlah1:
+	BLAH1,
+	// enumBlah2:
+	BLAH2,
+};
+
 // Global function
 inline bool // globFunc:
 GlobalFunc(ClassA *a)

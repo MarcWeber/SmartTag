@@ -1,9 +1,9 @@
-"==============================
-"========== SmartTag ==========
-"======= by Robert Webb =======
-"== http://www.software3d.com =
-"== Stella4D AT gmail DOT com =
-"==============================
+"===============================
+"========== SmartTag ===========
+"======= by Robert Webb ========
+"== http://www.software3d.com ==
+"== Stella4D AT gmail DOT com ==
+"===============================
 "
 " License: This file is placed in the public domain.
 " But please let me know if you modify it, and please keep the reference above
@@ -13,7 +13,7 @@
 " - Try to resolve ambiguous tags
 " - Tag to overloaded operators
 " - Tag with cursor on "delete" to jump to destructor
-" - Tag to local variables (not defined in tags file)
+" - Tag to local variables and goto labels (not defined in tags file)
 "
 "==================
 "=== How to use ===
@@ -22,38 +22,38 @@
 " Put this file in $VIMRUNTIME/plugin
 "
 " To use SmartTag all the time, in place of vim's own tag mechanism, you'll
-" need a version of vim with Lech Lorens's 'tagfunc' patch.  You can get it
+" need a version of vim with Lech Lorens's 'tagfunc' patch. You can get it
 " here:
 " http://repo.or.cz/w/vim_extended.git/shortlog/refs/heads/feat/tagfunc
 "
 " Then put this in your .vimrc or _vimrc file:
-"	set tagfunc=SmartTagFunc
+" set tagfunc=SmartTag#SmartTagFunc
 "
 " You may now also do the following to specify the class for a tag:
-"	:tag ClassB::mNext
-" 
+" :tag ClassB::mNext
+"
 " Otherwise, if you just want to use SmartTag via mappings, separate from vim's
 " normal tagging, set up some mappings in your .vimrc or _vimrc file, eg:
-"	nmap <C-_><C-_>   :call SmartTag#SmartTag("goto")<CR>
-"	nmap <C-_><C-W>   :call SmartTag#SmartTag("split")<CR>
-"	nmap <C-_><C-T>   :call SmartTag#SmartTag("tab")<CR>
-"	nmap <C-_><C-D>   :call SmartTag#SmartTag("debug")<CR>
+" nmap <C-_><C-_> :call SmartTag#SmartTag("goto")<CR>
+" nmap <C-_><C-W> :call SmartTag#SmartTag("split")<CR>
+" nmap <C-_><C-T> :call SmartTag#SmartTag("tab")<CR>
+" nmap <C-_><C-D> :call SmartTag#SmartTag("debug")<CR>
 " That last one is only needed for debugging this script.
 "
 " The above mappings explained:
-"	Ctrl-_ Ctrl-_   -   Jump to tag under cursor
-"	Ctrl-_ Ctrl-W   -   Split to tag under cursor
-"	Ctrl-_ Ctrl-T   -   Create new tab for tag under cursor
-"	Ctrl-_ Ctrl-D   -   Show debug info about finding tag under cursor
+" Ctrl-_ Ctrl-_ - Jump to tag under cursor
+" Ctrl-_ Ctrl-W - Split to tag under cursor
+" Ctrl-_ Ctrl-T - Create new tab for tag under cursor
+" Ctrl-_ Ctrl-D - Show debug info about finding tag under cursor
 "
 " There's also a function that attempts to determine the type of whatever's
 " under the cursor, but it doesn't always work very well, and will mostly only
 " find the basic type, not whether it's a pointer to that type or an array etc.
 " If you want to try it, use a mapping like this:
-"	map _t	:call ShowType()<CR>
+" map _t :call ShowType()<CR>
 "
 " Note: unless you use 'tagfunc', you can't use Ctrl-T to jump back to where
-" you tagged from.  Nor can you use :tn etc to try the next tag if it guesses
+" you tagged from. Nor can you use :tn etc to try the next tag if it guesses
 " wrong.
 "
 " === Requirements ===
@@ -66,8 +66,8 @@
 "
 " Without the "+S" field, SmartTag will mostly work fine, but there may be
 " more cases where it can't tell which overloaded function to use within a
-" class.  It can't count the number of args to a function as easily, but it
-" does still try, so most of the time it may not make a difference.  Using "+S"
+" class. It can't count the number of args to a function as easily, but it
+" does still try, so most of the time it may not make a difference. Using "+S"
 " does increase the size of your tags file too, so you may leave this flag out
 " if you wish.
 "
@@ -76,34 +76,34 @@
 "================
 "
 " Examples (with cursor on "bar"):
-"   ~bar	Tag to destructor
-"   foo::bar	Tag to bar as defined in class foo only
-"   ::bar	Tag to bar in global namespace only
+" ~bar Tag to destructor
+" foo::bar Tag to bar as defined in class foo only
+" ::bar Tag to bar in global namespace only
 "
-"   Type foo
-"   ...
-"   foo.bar	Tag to bar as defined in class Type
+" Type foo
+" ...
+" foo.bar Tag to bar as defined in class Type
 "
-"   Type *foo
-"   ...
-"   foo->bar	Tag to bar as defined in class Type
+" Type *foo
+" ...
+" foo->bar Tag to bar as defined in class Type
 "
-"   class Type : public Base
-"   ...
-"   Type *foo
-"   ...
-"   foo->bar	Tag to bar as defined in class Type, or failing that, in Base
+" class Type : public Base
+" ...
+" Type *foo
+" ...
+" foo->bar Tag to bar as defined in class Type, or failing that, in Base
 "
-"   Type::foo()
-"   {...
-"   bar		Tag to bar as defined in class Type, and failing that try bar
-"		in the global namespace
+" Type::foo()
+" {...
+" bar Tag to bar as defined in class Type, and failing that try bar
+" in the global namespace
 "
-"   bar(1)	Tag to function bar() which takes a single argument
-"   bar(1, 2)	Tag to function bar() which takes two arguments
+" bar(1) Tag to function bar() which takes a single argument
+" bar(1, 2) Tag to function bar() which takes two arguments
 "
 " If you put the cursor on an operator (eg +, ++, -> etc), it will first check
-" to see if there's a function overriding the operator.  It distinguishes
+" to see if there's a function overriding the operator. It distinguishes
 " between unary and binary operators, and between pre and post increment.
 " If no tag is found for the operator, it looks at the identifier after the
 " operator as usual.
@@ -120,108 +120,43 @@
 " - See TODO in the test files for some examples.
 "
 " - Multiple functions with the same name within a single class are
-"   distinguished only by the number of arguments they take, not by the type of
-"   those args.
+" distinguished only by the number of arguments they take, not by the type of
+" those args.
 "
 " - We have no way of handling virtual functions, ie of jumping to the
-"   appropriate version in a derived class.  This is decided at runtime and the
-"   same line of code may jump to different virtual functions at different
-"   times.  It would be nice at least to know which tags are plausible however.
+" appropriate version in a derived class. This is decided at runtime and the
+" same line of code may jump to different virtual functions at different
+" times. It would be nice at least to know which tags are plausible however.
 "
 " Changes required to vim to fix some problems:
-"	See my posts for unresolved issues:
-"	http://tech.groups.yahoo.com/group/vimdev/message/51652 (script begins)
-"	http://tech.groups.yahoo.com/group/vimdev/message/51680	('tagfunc')
-"	http://tech.groups.yahoo.com/group/vimdev/message/51805 (split bug)
-"	http://tech.groups.yahoo.com/group/vimdev/message/51889 (repeated tags)
+" See my posts for unresolved issues:
+" http://tech.groups.yahoo.com/group/vimdev/message/51652 (script begins)
+" http://tech.groups.yahoo.com/group/vimdev/message/51680 ('tagfunc')
+" http://tech.groups.yahoo.com/group/vimdev/message/51805 (split bug)
+" http://tech.groups.yahoo.com/group/vimdev/message/51889 (repeated tags)
 "
 " - Ability to perform two searches one after the other in a tag command.
-"   Eg "/class Blah//int var" would find Blah::var but not other occurrences of
-"   "int var" defined earlier in the file.  My script currently does the
-"   searching itself, so this isn't a problem, but it will be if 'tagfunc' is
-"   made available in the future.  Then my script would just return the tag
-"   matches whose search commands must be self-contained, ready for vim to
-"   execute.
+" Eg "/class Blah//int var" would find Blah::var but not other occurrences of
+" "int var" defined earlier in the file. My script currently does the
+" searching itself, so this isn't a problem, but it will be if 'tagfunc' is
+" made available in the future. Then my script would just return the tag
+" matches whose search commands must be self-contained, ready for vim to
+" execute.
 "
 " - taglist() should escape characters as necessary in the ex commands, so that
-"   they may be executed without further massaging (obviously this already
-"   happens internally somewhere).  Can use "escape(tagCmd, '*[]~')".  Any
-"   other characters?  Note: ctags already escapes / and \
+" they may be executed without further massaging (obviously this already
+" happens internally somewhere). Can use "escape(tagCmd, '*[]~')". Any
+" other characters? Note: ctags already escapes / and \
 "
 " - taglist() returns all tags found in all tag files, whereas jumping to a tag
-"   doesn't generally require looking at all tag files if a match is found in
-"   the first one.  Maybe taglist() could take an optional argument with the
-"   index of the tag file to use.  This might be handy in conjunction with
-"   'tagfunc'.  The user's tag function would then probably also need the extra
-"   arg so it knows to restrict its search.
+" doesn't generally require looking at all tag files if a match is found in
+" the first one. Maybe taglist() could take an optional argument with the
+" index of the tag file to use. This might be handy in conjunction with
+" 'tagfunc'. The user's tag function would then probably also need the extra
+" arg so it knows to restrict its search.
 "
 " - Fix the bug detailed here:
-"   http://tech.groups.yahoo.com/group/vimdev/message/51805
-"
-"====================
-"=== How it works ===
-"====================
-"
-" If the tag under the cursor is ambiguous, look back before identifier for
-" ., -> or ::.  If found, try to establish the type of the preceding
-" identifier.  This narrows the possible tags for our original identifier.
-" It we still have more than one possibility, then search back further.
-"
-" If ::, preceding identifier gives us the class.
-" If . or ->, may need to recursively go back past successive . or ->
-" If none of the above found, it may be a member of the class of the current
-" function.  Failing that, look for a local or global var, or tag normally.
-"
-" -------------------
-" --- More detail ---
-" -------------------
-"
-" Example: Cursor on "a" below.
-"   C++ code:	d ->		preId ->	id ->		a
-"   level:	3		2		1		0
-"   Types:	Cd1::Td1	Cc1::Tc1	Cb1::Ca1	Ca1::Ta1
-"   Types:	Cd2::Cc3	Cc2::Cb1	Cb1::Ca2	Ca2::Ta2
-"   Types:	Cd3::Cc4	Cc3::Tc2	Cb2::Tb1	Ca3::Ta3
-"   Types:	Cd4::Td2	Cc4::Cb3	Cb3::Ca5	Ca4::Ta4
-"   Types:					Cb4::Ca6	Ca5::Ta5
-"   Types:							Ca6::Ta6
-"   Types:							Ca7::Ta7
-"
-" We build up a list of possible types for "a".  If there's more than one, then
-" we look back past the "->" to "id" and find its possible types.  This may
-" eliminate some of the possible types for "a".  If we still have more than one
-" possible type, then we continue looking back.
-"
-" At level 0:
-" [0] Ca1::Ta1 Ca2::Ta2 Ca3::Ta3 Ca4::Ta4 Ca5::Ta5 Ca6::Ta6 Ca7::Ta7
-"
-" At level 1:
-" Remove [1] Tb1 which doesn't appear in [0]
-" Remove [0] Ca3,Ca4,Ca7 which don't appear in [1]
-" [0] Ca1::Ta1 Ca2::Ta2 Ca5::Ta5 Ca6::Ta6
-" [1] Cb1::Ca1 Cb1::Ca2 Cb3::Ca5 Cb4::Ca6
-"
-" At level 2:
-" Remove [2] Tc1,Tc2 which don't appear in [1]
-" Remove [1] Cb4 which doesn't appear in [2]
-" Remove [0] Ca6 which doesn't appear in [1]
-" [0] Ca1::Ta1 Ca1::Ta2 Ca2::Ta5
-" [1] Cb1::Ca1 Cb1::Ca2 Cb3::Ca1
-" [2] Cc1::Cb1 Cc4::Cb3
-"
-" At level 3:
-" Remove [3] Td1,Td2,Cc3 which don't appear in [2]
-" Remove [2] Cc1 which doesn't appear in [3]
-" Remove [1] Cb1 which doesn't appear in [2]
-" Remove [0] Ca2 which doesn't appear in [1]
-" [0] Ca1::Ta1 Ca1::Ta2
-" [1] Cb3::Ca1
-" [2] Cc4::Cb3
-" [3] Cd3::Cc4
-"
-" If any level has only one possible type then we can stop looking, even if
-" level 0 still has more than one (further looking won't be able to resolve
-" it).
+" http://tech.groups.yahoo.com/group/vimdev/message/51805
 "
 "====================
 " latest version:

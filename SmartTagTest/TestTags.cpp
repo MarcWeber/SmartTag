@@ -6,6 +6,12 @@
 static int glob = 0;
 // glob2:
 static int glob2 = 0;
+// glob3:
+static int glob3 = 0;
+// glob4:
+static int glob4 = 0;
+// glob5:
+static int glob5 = 0;
 
 // a!:
 ClassA::ClassA(int blah /* = -1 */)
@@ -298,8 +304,41 @@ main()
 
 	// Don't confuse these with local variable declarations.
 	a.override(glob);
-	int g = glob2;
+	int g2 = glob2;
+	int g3 = g2 * glob3;
+	if (g2 * glob4 > 0)
+		a.override(g2 * glob5);
 	bool blah = b && GlobalFunc(a);
+	switch (g)
+	{
+		//   #enumBlah1
+		case BLAH1:
+		//       #enumBlah2
+		case BLAH2:
+			break;
+	}
+
+	// These on the other hand, really should be recognised as local vars.
+	// localI1: localI2: localI3: localI4:
+	int i1, i2 = 12, i3 = a.override(1, 2), i4;
+
+	// These should jump to local vars:
+	//  #localI1 #localI2 #localI3 #localI4
+	g = i1 +     i2 +     i3     + i4;
+
+	// These should not find a local var:
+	//   #enumBlah2
+	g = BLAH2;
+	// #glob
+	glob = 1;
+	// #glob2
+	glob2 = 2;
+	// #glob3
+	glob3 = 3;
+	// #glob4
+	glob4 = 4;
+	// #glob5
+	glob5 = 5;
 
 	// #globFunc
 	GlobalFunc(a);
@@ -340,10 +379,6 @@ main()
 
 	// gotoBlah:
 blah:
-	// #glob
-	glob = 1;
-	// #glob2
-	glob2 = 2;
 	// #aag
 	aa.glob = 2;
 	// #aal

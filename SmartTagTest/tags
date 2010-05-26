@@ -4,6 +4,8 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
+BLAH1	TestTags.h	/^	BLAH1,$/;"	e	enum:__anon1
+BLAH2	TestTags.h	/^	BLAH2,$/;"	e	enum:__anon1
 ClassA	TestTags.cpp	/^ClassA::ClassA(int blah \/* = -1 *\/)$/;"	f	class:ClassA	signature:(int blah )
 ClassA	TestTags.h	/^ class ClassA	\/\/ Still finds it with whitespace at the start$/;"	c
 ClassAA	TestTags.cpp	/^ClassAA::ClassAA()$/;"	f	class:ClassAA	signature:()
@@ -34,10 +36,13 @@ endPos	SmartTagTest.vim	/^	    let endPos = pos$/;"	v
 endPos	SmartTagTest.vim	/^let endPos = getpos(".")$/;"	v
 func	TestTags.cpp	/^void ClassB::Nested::func(ClassA *a,$/;"	f	class:ClassB::Nested	signature:(ClassA *a, ClassC *c, ClassAA *aa)
 func	TestTags.h	/^		void func()$/;"	f	struct:ClassA::Nested	access:public	signature:()
-gNamelessStruct	TestTags.h	/^} gNamelessStruct;$/;"	v	typeref:struct:__anon13
+gNamelessStruct	TestTags.h	/^} gNamelessStruct;$/;"	v	typeref:struct:__anon14
 glob	TestTags.cpp	/^static int glob = 0;$/;"	v	file:
 glob	TestTags.h	/^	float	glob;$/;"	m	class:ClassAA	access:public
 glob2	TestTags.cpp	/^static int glob2 = 0;$/;"	v	file:
+glob3	TestTags.cpp	/^static int glob3 = 0;$/;"	v	file:
+glob4	TestTags.cpp	/^static int glob4 = 0;$/;"	v	file:
+glob5	TestTags.cpp	/^static int glob5 = 0;$/;"	v	file:
 hj	SmartTagTest.vim	/^    normal hj$/;"	m
 id	SmartTagTest.vim	/^    let id = substitute(expand("<cWORD>"), '^.*#', '', '')$/;"	v
 inlineFunc	TestTags.h	/^	inline bool inlineFunc()$/;"	f	class:ClassA	access:public	signature:()
@@ -48,11 +53,11 @@ lineNum	SmartTagTest.vim	/^    let lineNum = line(".")$/;"	v
 localFunc	TestTags.h	/^		void localFunc()$/;"	f	struct:ClassB::Nested	access:public	signature:()
 mA	TestTags.h	/^	ClassA *mA;$/;"	m	class:ClassA	access:public
 mA	TestTags.h	/^	ClassA *mA;$/;"	m	class:ClassB	access:public
-mA	TestTags.h	/^	ClassA *mA;$/;"	m	struct:__anon13	access:public
+mA	TestTags.h	/^	ClassA *mA;$/;"	m	struct:__anon14	access:public
 mA	TestTags.h	/^	ClassA *mA;$/;"	m	union:UnionA	access:public
-mAnon	TestTags.h	/^				ClassA *mAnon;$/;"	m	struct:ClassA::__anon1::__anon2::__anon3	access:public
-mAnon	TestTags.h	/^				ClassA *mAnon;$/;"	m	struct:ClassB::__anon7::__anon8::__anon9	access:public
-mB	TestTags.h	/^	ClassB *mB;		\/\/ This comment makes the search different, so it works.$/;"	m	struct:__anon13	access:public
+mAnon	TestTags.h	/^				ClassA *mAnon;$/;"	m	struct:ClassA::__anon2::__anon3::__anon4	access:public
+mAnon	TestTags.h	/^				ClassA *mAnon;$/;"	m	struct:ClassB::__anon8::__anon9::__anon10	access:public
+mB	TestTags.h	/^	ClassB *mB;		\/\/ This comment makes the search different, so it works.$/;"	m	struct:__anon14	access:public
 mB	TestTags.h	/^	ClassB *mB;$/;"	m	class:ClassA	access:public
 mB	TestTags.h	/^	ClassB *mB;$/;"	m	class:ClassB	access:public
 mB	TestTags.h	/^	ClassB *mB;$/;"	m	union:UnionA	access:public
@@ -101,22 +106,22 @@ mRedHerring9	TestTags.h	/^	Nested::Nested2 mRedHerring8, mNested12, mRedHerring9
 mRight	TestTags.h	/^	ClassA *mRight;$/;"	m	class:ClassA	access:public
 mRight	TestTags.h	/^	ClassAA *mRight;$/;"	m	class:ClassAA	access:public
 mRight	TestTags.h	/^	ClassB *mRight;$/;"	m	class:ClassB	access:public
-mS	TestTags.h	/^	} mS;$/;"	m	class:ClassA	typeref:struct:ClassA::__anon4	access:public
-mS	TestTags.h	/^	} mS;$/;"	m	class:ClassB	typeref:struct:ClassB::__anon10	access:public
-mSA	TestTags.h	/^		ClassA *mSA;$/;"	m	struct:ClassA::__anon1	access:public
-mSA	TestTags.h	/^		ClassA *mSA;$/;"	m	struct:ClassB::__anon7	access:public
-mSA2	TestTags.h	/^		ClassA *mSA2;$/;"	m	struct:ClassA::__anon4	access:public
-mSA2	TestTags.h	/^		ClassA *mSA2;$/;"	m	struct:ClassB::__anon10	access:public
-mU	TestTags.h	/^	} mU;$/;"	m	class:ClassA	typeref:union:ClassA::__anon6	access:public
-mU	TestTags.h	/^	} mU;$/;"	m	class:ClassB	typeref:union:ClassB::__anon12	access:public
-mUA	TestTags.h	/^		ClassA *mUA;$/;"	m	union:ClassA::__anon5	access:public
-mUA	TestTags.h	/^		ClassA *mUA;$/;"	m	union:ClassB::__anon11	access:public
-mUA2	TestTags.h	/^		ClassA *mUA2;$/;"	m	union:ClassA::__anon6	access:public
-mUA2	TestTags.h	/^		ClassA *mUA2;$/;"	m	union:ClassB::__anon12	access:public
-mUB	TestTags.h	/^		ClassB *mUB;$/;"	m	union:ClassA::__anon5	access:public
-mUB	TestTags.h	/^		ClassB *mUB;$/;"	m	union:ClassB::__anon11	access:public
-mUB2	TestTags.h	/^		ClassB *mUB2;$/;"	m	union:ClassA::__anon6	access:public
-mUB2	TestTags.h	/^		ClassB *mUB2;$/;"	m	union:ClassB::__anon12	access:public
+mS	TestTags.h	/^	} mS;$/;"	m	class:ClassA	typeref:struct:ClassA::__anon5	access:public
+mS	TestTags.h	/^	} mS;$/;"	m	class:ClassB	typeref:struct:ClassB::__anon11	access:public
+mSA	TestTags.h	/^		ClassA *mSA;$/;"	m	struct:ClassA::__anon2	access:public
+mSA	TestTags.h	/^		ClassA *mSA;$/;"	m	struct:ClassB::__anon8	access:public
+mSA2	TestTags.h	/^		ClassA *mSA2;$/;"	m	struct:ClassA::__anon5	access:public
+mSA2	TestTags.h	/^		ClassA *mSA2;$/;"	m	struct:ClassB::__anon11	access:public
+mU	TestTags.h	/^	} mU;$/;"	m	class:ClassA	typeref:union:ClassA::__anon7	access:public
+mU	TestTags.h	/^	} mU;$/;"	m	class:ClassB	typeref:union:ClassB::__anon13	access:public
+mUA	TestTags.h	/^		ClassA *mUA;$/;"	m	union:ClassA::__anon6	access:public
+mUA	TestTags.h	/^		ClassA *mUA;$/;"	m	union:ClassB::__anon12	access:public
+mUA2	TestTags.h	/^		ClassA *mUA2;$/;"	m	union:ClassA::__anon7	access:public
+mUA2	TestTags.h	/^		ClassA *mUA2;$/;"	m	union:ClassB::__anon13	access:public
+mUB	TestTags.h	/^		ClassB *mUB;$/;"	m	union:ClassA::__anon6	access:public
+mUB	TestTags.h	/^		ClassB *mUB;$/;"	m	union:ClassB::__anon12	access:public
+mUB2	TestTags.h	/^		ClassB *mUB2;$/;"	m	union:ClassA::__anon7	access:public
+mUB2	TestTags.h	/^		ClassB *mUB2;$/;"	m	union:ClassB::__anon13	access:public
 main	TestTags.cpp	/^main()$/;"	f	signature:()
 numErrors	SmartTagTest.vim	/^	let numErrors += 1$/;"	v
 numErrors	SmartTagTest.vim	/^let numErrors = 0$/;"	v
