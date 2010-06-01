@@ -35,4 +35,8 @@ SmartTag.vba: autoload/SmartTag.vim doc/SmartTag.txt
 	      -c '%MkVimball! $@'                     \
 	      -c 'q!' -
 
+.PHONY: clean
+clean: testclean
+	rm -f SmartTag.vba
+
 # vim: ft=make isfname-== noet
