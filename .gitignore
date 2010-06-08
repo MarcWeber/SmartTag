@@ -1,4 +1,5 @@
-SmartTag.vba
+/SmartTag.vba
+/errors.log
 *.cpp-test
 *.c-test
 *.h-test

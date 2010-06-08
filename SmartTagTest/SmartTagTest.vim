@@ -9,6 +9,15 @@
 " one.  In either case, the cursor is left on the first erroneous tag.
 let stopOnFirstError = 0
 
+if !exists("g:batchRun")
+    let g:batchRun=0
+endif
+
+if g:batchRun
+    let fname = expand('%')
+    let errorList = []
+endif
+
 let endPos = getpos(".")
 let numErrors = 0
 1
@@ -27,7 +36,11 @@ while (!stopOnFirstError || numErrors == 0)
     normal k
     let line = getline(".")
     if (match(line, '\<' . escape(id, '~') . ':') < 0)
-	echomsg 'Error: id "' . id . '", line ' . lineNum . ' col ' . col
+	if g:batchRun
+	    call add(errorList, fname . ':' . lineNum . ':' . col . ': Error: id "' . id . '"')
+	else
+	    echomsg 'Error: id "' . id . '", line ' . lineNum . ' col ' . col
+	endif
 	if (numErrors == 0)
 	    let endPos = pos
 	endif
@@ -36,8 +49,22 @@ while (!stopOnFirstError || numErrors == 0)
     quit
     call setpos(".", oldPos)
 endwhile
-call setpos(".", endPos)
-normal zz
-"if (numErrors > 0)
+
+if g:batchRun
+    exe "e " . g:resultFile
+    if (numErrors > 0)
+	call append('$', errorList)
+	w
+	cquit
+    else
+	qa
+    endif
+else
+    call setpos(".", endPos)
+    normal zz
+    "if (numErrors > 0)
     echomsg numErrors . " Errors"
-"endif
+    "endif
+endif
+
+" vim: ft=vim ts=8 sw=4 sts=4 sta noet

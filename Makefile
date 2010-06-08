@@ -1,5 +1,5 @@
 VIM=vim
-VIM_SETTINGS=-c 'set runtimepath=.'
+VIM_SETTINGS=-c set\ runtimepath=. -c let\ g:batchRun=1 -c let\ g:resultFile=\"errors.log\"
 
 .PHONY: all
 all:	SmartTag.vba
@@ -22,8 +22,12 @@ include Rules.mk
 	$(VIM) $(VIM_SETTINGS) -S $(VIM_TEST_SCRIPT) $<
 	@touch $@
 
+.PHONY: clean-error-file
+clean-error-file:
+	@rm -f errors.log
+
 .PHONY: test
-test: $(ALL_TEST_CASES)
+test: clean-error-file $(ALL_TEST_CASES)
 
 .PHONY: testclean
 testclean:
