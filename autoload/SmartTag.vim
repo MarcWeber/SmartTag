@@ -996,7 +996,7 @@ fun! SmartTag#TagType(tag, nameOnly)
 	let i += 1
     endif
     let i = match(cmd, '[^	 {]', i)
-    let origIdPos = match(cmd, a:tag["name"], i)
+    let origIdPos = match(cmd, '\<' . a:tag["name"] . '\>', i)
     if (origIdPos < 0)
 	" Search pattern doesn't contain original identifier, weird.
 	return ""
