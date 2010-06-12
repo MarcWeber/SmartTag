@@ -550,7 +550,8 @@ fun! SmartTag#FindDeclarationType()
 
     " Avoid thinking things like "return" are types.
     if (type == "return" || type == "new" || type == "delete" ||
-	\ type == "else" || type == "case" || type == "goto")
+	\ type == "else" || type == "case" || type == "goto" ||
+	\ type == "if")
 	return ""
     endif
     if (match(SmartTag#CursorChar(), '\h') < 0)
