@@ -1953,6 +1953,36 @@ fun! SmartTag#GetNiceTagList(niceTags, flags)
 			if (found)
 			    break
 			endif
+
+			let c = tag["trueClass"]
+			let oldC = "---"	" Anything that can't equal c
+			while (c != oldC)
+			    " Does the class of our identifier match a possible
+			    " type for the identifier up one level?
+			    for tagType in tags[i]["types"]
+				let oldTagType = "---"
+				while (tagType != oldTagType)
+				    if tagType ==# c
+					let found = 1
+					break
+				    endif
+				    let oldTagType = tagType
+				    let tagType = substitute(tagType, '\h\w\+::', '', '')
+				endwhile
+				if (found)
+				    break
+				endif
+			    endfor
+			    if (found)
+				break
+			    endif
+			    let oldC = c
+			    let c = substitute(c, '::__anon\d\+$', '', '')
+			endwhile
+			if (found)
+			    break
+			endif
+
 		    endif
 		endfor
 		if (!found)
@@ -2000,6 +2030,39 @@ fun! SmartTag#GetNiceTagList(niceTags, flags)
 			    let oldC = c
 			    let c = substitute(c, '::__anon\d\+$', '', '')
 			endwhile
+
+			if (idx < 0)
+			    let c = tagLists[lev][i]["trueClass"]
+			    let oldC = "---"	" Anything that can't equal c
+			    let found = -1
+			    while (c != oldC && found < 0)
+				" Does the class of our identifier match a possible
+				" type for the identifier up one level?
+				let typeIdx = 0
+				for tagType in tag["types"]
+				    let oldTagType = "---"
+				    while (tagType != oldTagType)
+					if tagType ==# c
+					    let found = typeIdx
+					    break
+					endif
+					let oldTagType = tagType
+					let tagType = substitute(tagType, '\h\w\+::', '', '')
+				    endwhile
+				    if (found >= 0)
+					break
+				    endif
+				    let typeIdx += 1
+				endfor
+				if (found >= 0)
+				    let idx = found
+				    break
+				endif
+				let oldC = c
+				let c = substitute(c, '::__anon\d\+$', '', '')
+			    endwhile
+			endif
+
 			if (idx >= 0)
 			    if (idx > worstIdx)
 				let worstIdx = idx
@@ -2325,3 +2388,4 @@ fun! SmartTag#SmartTagFunc(pattern, flags)
 endfunc
 
 let &cpo = s:oldCpo
+" vim: ft=vim ts=8 sw=4 sts=4 noet
