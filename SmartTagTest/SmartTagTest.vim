@@ -51,13 +51,17 @@ while (!stopOnFirstError || numErrors == 0)
 endwhile
 
 if g:batchRun
-    exe "e " . g:resultFile
     if (numErrors > 0)
+	exe "e " . g:resultFile
 	call append('$', errorList)
 	w
-	cquit
-    else
-	qa
+    endif
+    if exists("g:quitAll") && g:quitAll != 0
+	if (numErrors > 0)
+	    cquit
+	else
+	    qa
+	endif
     endif
 else
     call setpos(".", endPos)

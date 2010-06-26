@@ -1,5 +1,8 @@
 VIM=vim
-VIM_SETTINGS=-c set\ runtimepath=. -c let\ g:batchRun=1 -c let\ g:resultFile=\"errors.log\"
+VIM_SETTINGS=-c set\ runtimepath=.                                       \
+             -c let\ g:batchRun=1                                        \
+             -c let\ g:resultFile=\"errors.log\"                         \
+             -c let\ g:quitAll=1
 
 .PHONY: all
 all:	SmartTag.vba
