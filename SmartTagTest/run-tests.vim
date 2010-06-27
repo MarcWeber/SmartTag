@@ -5,6 +5,7 @@
 let testFiles = [
                 \   "TestTags/TestTags.cpp"
                 \ , "TestTags/TestTags.h"
+                \ , "wrong-local-vars/file.c"
                 \ ]
 
 set runtimepath=..
