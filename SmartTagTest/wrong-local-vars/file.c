@@ -14,7 +14,7 @@ void func2()
 	//#eT  et:
 	etype1 et;
 
-	//     #et
+	//      #et
 	switch (et)
 	{
 		  // #e1
@@ -34,4 +34,58 @@ void func2()
 			break;
 	}
 }
+
+void func3()
+{
+	unsigned i;
+
+	for (i = 10; 0 < i; --i)
+		printf("foo\n");
+
+	while (1 > bar)
+		printf("bar\n");
+
+	// #bar
+	   bar = 3;
+}
+
+void func4()
+{
+	while (3 < 1)
+		printf("foo\n");
+
+	while (1 > bar)
+		printf("bar\n");
+
+	// #bar
+	   bar = 3;
+}
+
+void func5()
+{
+	do
+		a < b;
+	while (1 > bar);
+
+	// #bar
+	   bar = 3;
+}
+
+void func6()
+{
+	switch (1 < foo)
+	{
+		case 1:
+			break;
+		case 2:
+			break;
+	}
+
+	while (1 > bar)
+		printf("bar\n");
+
+	// #bar
+	   bar = 3;
+}
+
 /* vim: set ft=c ts=4 :*/
