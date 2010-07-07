@@ -1,7 +1,7 @@
 void func()
 {
 	CStructType *c;
-	//        #Ama
+	//         #Ama
 	c->AStruct.ma;
 }
 /* vim: set ft=c ts=4 :*/
