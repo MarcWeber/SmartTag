@@ -996,7 +996,7 @@ fun! SmartTag#TagType(tag, nameOnly)
 	let i += 1
     endif
     let i = match(cmd, '[^	 {]', i)
-    let origIdPos = match(cmd, a:tag["name"], i)
+    let origIdPos = match(cmd, '\<' . a:tag["name"] . '\>', i)
     if (origIdPos < 0)
 	" Search pattern doesn't contain original identifier, weird.
 	return ""
@@ -1031,7 +1031,7 @@ fun! SmartTag#TagType(tag, nameOnly)
 	    " command.
 	    let origIdPos = -1
 	elseif (!a:nameOnly)
-	    let last = match(cmd, a:tag["name"], j)
+	    let last = match(cmd, '\<' . a:tag["name"] . '\>', j)
 	    let k = last - 1
 	    while (k >= j && match(cmd[k], '[	 *&]') >= 0)
 		let k -= 1
@@ -1056,7 +1056,7 @@ fun! SmartTag#TagType(tag, nameOnly)
 	if (SmartTag#GoToTag(a:tag, 'h'))
 	    " First, move cursor to column for our identifier.
 	    let line = getline(".")
-	    let col = match(line, a:tag["name"])
+	    let col = match(line, '\<' . a:tag["name"] . '\>')
 	    normal 0
 	    if (col > 0)
 		exec 'normal ' . col . 'l'

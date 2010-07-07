@@ -10,6 +10,9 @@ include $(dir)/Rules.mk
 dir := $(d)/wrong-type-member
 include $(dir)/Rules.mk
 
+dir := $(d)/wrong-type-member2
+include $(dir)/Rules.mk
+
 d		:= $(dirstack_$(sp))
 sp		:= $(basename $(sp))
 
