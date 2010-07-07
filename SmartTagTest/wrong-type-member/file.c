@@ -1,14 +1,15 @@
 #include <aheader.h>
 #include <bheader.h>
 
-struct SQuux {
-	struct SFoo *pFoo;
+struct A {
+	struct C *pC;
 };
 
 void func()
 {
-	struct SQuux quux;
-	//        #MFoo
-	quux.pFoo->m1;
+	struct A a;
+	//    #MC
+	a.pC->m1;
 }
+
 /* vim: set ft=c ts=4 noet :*/

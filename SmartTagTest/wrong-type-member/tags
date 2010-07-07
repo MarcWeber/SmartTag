@@ -4,10 +4,10 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
-SBar	aheader.h	/^struct SBar {$/;"	s
-SFoo	bheader.h	/^struct SFoo {$/;"	s
-SQuux	file.c	/^struct SQuux {$/;"	s	file:
+A	file.c	/^struct A {$/;"	s	file:
+B	aheader.h	/^struct B {$/;"	s
+C	bheader.h	/^struct C {$/;"	s
 func	file.c	/^void func()$/;"	f
-m1	aheader.h	/^	int m1;$/;"	m	struct:SBar
-m1	bheader.h	/^	int m1;$/;"	m	struct:SFoo
-pFoo	file.c	/^	struct SFoo *pFoo;$/;"	m	struct:SQuux	typeref:struct:SQuux::SFoo	file:
+m1	aheader.h	/^	int m1;$/;"	m	struct:B
+m1	bheader.h	/^	int m1;$/;"	m	struct:C
+pC	file.c	/^	struct C *pC;$/;"	m	struct:A	typeref:struct:A::C	file:
