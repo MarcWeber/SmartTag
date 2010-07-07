@@ -88,4 +88,18 @@ void func6()
 	   bar = 3;
 }
 
+void func7()
+{
+	unsigned i;
+
+	for (i = 0; i < 0; ++i)
+		printf("foo\n");
+
+	while (1 > bar)
+		printf("bar\n");
+
+	// #bar
+	   bar = 3;
+}
+
 /* vim: set ft=c ts=4 :*/
