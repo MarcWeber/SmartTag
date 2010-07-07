@@ -1967,7 +1967,7 @@ fun! SmartTag#GetNiceTagList(niceTags, flags)
 					break
 				    endif
 				    let oldTagType = tagType
-				    let tagType = substitute(tagType, '\h\w\+::', '', '')
+				    let tagType = substitute(tagType, '\h\w*::', '', '')
 				endwhile
 				if (found)
 				    break
@@ -2047,7 +2047,7 @@ fun! SmartTag#GetNiceTagList(niceTags, flags)
 					    break
 					endif
 					let oldTagType = tagType
-					let tagType = substitute(tagType, '\h\w\+::', '', '')
+					let tagType = substitute(tagType, '\h\w*::', '', '')
 				    endwhile
 				    if (found >= 0)
 					break
