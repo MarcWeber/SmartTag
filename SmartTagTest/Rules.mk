@@ -13,6 +13,9 @@ include $(dir)/Rules.mk
 dir := $(d)/wrong-type-member2
 include $(dir)/Rules.mk
 
+dir := $(d)/wrong-local-vars
+include $(dir)/Rules.mk
+
 d		:= $(dirstack_$(sp))
 sp		:= $(basename $(sp))
 

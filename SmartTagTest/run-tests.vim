@@ -7,6 +7,7 @@ let testFiles = [
                 \ , "TestTags/TestTags.h"
                 \ , "wrong-type-member/file.c"
                 \ , "wrong-type-member2/file.c"
+                \ , "wrong-local-vars/file.c"
                 \ ]
 
 set runtimepath=..
